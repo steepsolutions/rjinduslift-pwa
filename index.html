@@ -1,1 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F5821F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="R&J">
+<title>R&J Induslift — Mantenimiento</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1A1A1A; }
+  iframe { width: 100%; height: 100%; border: 0; display: block; }
+  #loading {
+    position: fixed; inset: 0; background: #1A1A1A; color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100; transition: opacity 0.4s;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  #loading.oculto { opacity: 0; pointer-events: none; }
+  #loading .logo {
+    width: 100px; height: 100px; border-radius: 22px;
+    background: #F5821F; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 900; color: #fff; letter-spacing: -2px;
+    box-shadow: 0 8px 24px rgba(245,130,31,.35);
+  }
+  #loading .titulo { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  #loading .sub { font-size: 12px; opacity: 0.6; margin-top: 4px; letter-spacing: 2px; }
+  #loading .spinner {
+    margin-top: 30px; width: 30px; height: 30px;
+    border: 3px solid rgba(245,130,31,.2); border-top-color: #F5821F;
+    border-radius: 50%; animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #sin-conexion {
+    position: fixed; inset: 0; background: #1A1A1A; color: #fff;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 30px; text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  #sin-conexion.visible { display: flex; }
+  #sin-conexion .icon { font-size: 60px; margin-bottom: 16px; }
+  #sin-conexion h2 { font-size: 20px; margin-bottom: 10px; }
+  #sin-conexion p { font-size: 14px; opacity: 0.7; margin-bottom: 24px; max-width: 300px; }
+  #sin-conexion button {
+    background: #F5821F; color: #fff; border: none; padding: 12px 30px;
+    border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
 
+<div id="loading">
+  <div class="logo">R&J</div>
+  <div class="titulo">R&J Induslift</div>
+  <div class="sub">MANTENIMIENTO</div>
+  <div class="spinner"></div>
+</div>
+
+<div id="sin-conexion">
+  <div class="icon">📡</div>
+  <h2>Sin conexión</h2>
+  <p>Necesitas conexión a internet para usar la app por primera vez.</p>
+  <button onclick="location.reload()">Reintentar</button>
+</div>
+
+<iframe id="appFrame"
+  src="https://script.google.com/macros/s/AKfycbyPLACEHOLDER/exec"
+  allow="camera; microphone; geolocation; clipboard-read; clipboard-write"
+  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads allow-top-navigation-by-user-activation">
+</iframe>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('sw.js').then(function(reg) {
+        console.log('Service Worker OK:', reg.scope);
+      }).catch(function(err) {
+        console.warn('Service Worker error:', err);
+      });
+    });
+  }
+
+  document.getElementById('appFrame').addEventListener('load', function() {
+    setTimeout(function() {
+      document.getElementById('loading').classList.add('oculto');
+    }, 300);
+  });
+
+  if (!navigator.onLine) {
+    document.getElementById('sin-conexion').classList.add('visible');
+  }
+
+  window.addEventListener('message', function(event) {
+    if (event.data && event.data.tipo === 'abrir-url') {
+      window.open(event.data.url, '_blank');
+    }
+  });
+</script>
+
+</body>
+</html>
