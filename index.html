@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -95,7 +95,7 @@
   <div class="titulo">R&J Induslift</div>
   <div class="subtitulo">Mantenimiento</div>
   
-  <button class="btn-abrir" id="btnAbrir" onclick="abrirApp()">
+  <button class="btn-abrir" id="btnAbrir" onclick="abrirApp()" type="button">
     <span class="icono">📱</span>
     <span>Abrir Aplicación</span>
   </button>
@@ -106,18 +106,36 @@
 </div>
 
 <script>
-// URL de la Web App de Google Apps Script
+// ===== CONFIGURACIÓN =====
 var URL_APP = 'https://script.google.com/macros/s/AKfycbyp1B6WwOd6d2-Od_2KMZXsYR3NzbZEhy4y-7kQKl95GYn3y2PNylxp5TxXre4utMmizg/exec';
 
+// ===== ABRIR LA APP =====
 function abrirApp() {
-  document.getElementById('btnAbrir').style.display = 'none';
-  document.getElementById('cargando').classList.add('visible');
+  var btn = document.getElementById('btnAbrir');
+  var cargando = document.getElementById('cargando');
   
-  // Abrir la app en la misma ventana (más rápido)
-  window.location.href = URL_APP;
+  btn.style.display = 'none';
+  cargando.classList.add('visible');
+  
+  // Detectar si es móvil
+  var esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  
+  // Abrir la app
+  var win = window.open(URL_APP, '_blank');
+  
+  // Si el navegador bloqueó la apertura, redirigir en la misma pestaña
+  if (!win || win.closed || typeof win.closed === 'undefined') {
+    window.location.href = URL_APP;
+  }
+  
+  // Volver al splash después de 2 segundos
+  setTimeout(function() {
+    btn.style.display = 'inline-flex';
+    cargando.classList.remove('visible');
+  }, 2000);
 }
 
-// Service Worker
+// ===== REGISTRO DEL SERVICE WORKER =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -127,11 +145,6 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-
-// Detección online/offline
-window.addEventListener('offline', function() {
-  alert('Sin conexión a internet. Conéctate para usar la aplicación.');
-});
 </script>
 
 </body>
