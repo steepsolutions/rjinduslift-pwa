@@ -1,5 +1,18 @@
 const USUARIOS={1234:{nombre:"Pedro Perez",rol:"tecnico",iniciales:"PP"},5678:{nombre:"Luis Marcano",rol:"tecnico",iniciales:"LM"},9999:{nombre:"Socio Operativo",rol:"admin",iniciales:"SO"},8888:{nombre:"Socio Administrativo",rol:"admin",iniciales:"SA"}},CLAVE_SESION="rj_sesion_v1",SESION_HORAS=12;
 const API_URL = 'https://script.google.com/macros/s/AKfycbyp1B6WwOd6d2-Od_2KMZXsYR3NzbZEhy4y-7kQKl95GYn3y2PNylxp5TxXre4utMmizg/exec';
+// ⚠️ Helper para desenvolver la respuesta del backend
+// El backend siempre devuelve {data: ...} o {__error: ...}
+async function apiFetch(url, options) {
+    const response = await fetch(url, options);
+    const json = await response.json();
+    
+    if (json.__error) {
+        throw new Error(json.__error);
+    }
+    
+    // Si viene envuelto en "data", devolver solo el contenido
+    return json.data !== undefined ? json.data : json;
+}
 
 function sesionValida(){try{const e=localStorage.getItem(CLAVE_SESION);if(!e)return!1;const t=JSON.parse(e);return t.ok&&Date.now()-t.ts<432e5}catch(e){return!1}}
 function guardarSesion_(e){localStorage.setItem(CLAVE_SESION,JSON.stringify({ok:!0,ts:Date.now(),usuario:e}))}
