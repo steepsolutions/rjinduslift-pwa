@@ -150,7 +150,7 @@ try {
 } catch(err) {
     m.classList.remove("activo");
     miError("Error de conexión", err.message);
-}
+    }
 }
 
 function actualizarAvisoEstado(){
@@ -270,7 +270,7 @@ async function guardarItemCatalogo(){
     o.disabled=!1;
     o.textContent="Guardar";
     miError("Error de conexión", err.message);
-}
+    }
 }    
 
 async function toggleCliente(e,t){
