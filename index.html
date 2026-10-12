@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -13,129 +13,253 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { 
-    width: 100%; height: 100%; 
-    background: linear-gradient(160deg, #1A1A1A 0%, #2B2B2B 100%);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    color: #fff; overflow: hidden;
-  }
-  .screen {
-    position: fixed; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 30px 24px;
-    text-align: center;
-  }
-  .logo-box {
-    width: 110px; height: 110px; border-radius: 24px;
-    background: #F5821F;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 38px; font-weight: 900; color: #fff; letter-spacing: -2px;
-    box-shadow: 0 10px 32px rgba(245,130,31,.45);
-    margin-bottom: 24px;
-    animation: pop .5s ease;
-  }
-  @keyframes pop {
-    0% { transform: scale(0); opacity: 0; }
-    70% { transform: scale(1.1); }
-    100% { transform: scale(1); opacity: 1; }
-  }
-  .titulo {
-    font-size: 26px; font-weight: 800;
-    letter-spacing: -0.5px; margin-bottom: 6px;
-  }
-  .subtitulo {
-    font-size: 13px; color: #9fb0c9;
-    letter-spacing: 2px; text-transform: uppercase;
-    margin-bottom: 40px;
-  }
-  .btn-abrir {
-    display: inline-flex; align-items: center; gap: 10px;
-    padding: 18px 44px;
-    background: #F5821F; color: #fff;
-    border: none; border-radius: 14px;
-    font-size: 17px; font-weight: 800;
-    letter-spacing: .4px;
-    cursor: pointer;
-    box-shadow: 0 8px 24px rgba(245,130,31,.4);
-    transition: transform .15s ease, box-shadow .15s ease;
-    text-decoration: none;
-  }
-  .btn-abrir:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(245,130,31,.55);
-  }
-  .btn-abrir:active {
-    transform: translateY(0);
-  }
-  .btn-abrir .icono {
-    font-size: 20px;
-  }
-  .pie {
-    position: absolute; bottom: 30px; left: 0; right: 0;
-    text-align: center;
-    font-size: 11px; color: #666; letter-spacing: 1px;
-  }
-  .pie b { color: #F5821F; }
-  
-  .cargando {
-    margin-top: 20px;
-    font-size: 13px; color: #9fb0c9;
-    display: none;
-  }
-  .cargando.visible { display: block; }
-</style>
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
-<div class="screen">
-  <div class="logo-box">R&J</div>
-  <div class="titulo">R&J Induslift</div>
-  <div class="subtitulo">Mantenimiento</div>
-  
-  <button class="btn-abrir" id="btnAbrir" onclick="abrirApp()" type="button">
-    <span class="icono">📱</span>
-    <span>Abrir Aplicación</span>
-  </button>
-  
-  <div class="cargando" id="cargando">Abriendo aplicación...</div>
-  
-  <div class="pie">Desarrollado por <b>Steep Solutions</b></div>
+<!-- ============ LOGIN ============ -->
+<div id="loginOverlay">
+  <div class="login-caja">
+    <div class="login-logo">R&J</div>
+    <div class="login-titulo">R&J Induslift</div>
+    <div class="login-sub">Sistema de Mantenimiento</div>
+    <div class="pin-label">Ingresa tu PIN</div>
+    <div class="pin-fila">
+      <input type="tel" inputmode="numeric" maxlength="1" id="pin0" autocomplete="off">
+      <input type="tel" inputmode="numeric" maxlength="1" id="pin1" autocomplete="off">
+      <input type="tel" inputmode="numeric" maxlength="1" id="pin2" autocomplete="off">
+      <input type="tel" inputmode="numeric" maxlength="1" id="pin3" autocomplete="off">
+    </div>
+    <button class="btn-login" id="btnLogin">Ingresar</button>
+    <div id="loginError"></div>
+  </div>
 </div>
 
+<!-- ============ MENÚ LATERAL ============ -->
+<div id="fondoMenu" onclick="cerrarMenu()"></div>
+<div id="menuLateral">
+  <div class="menu-top"></div>
+  <div class="menu-sesion">
+    <div>
+      <div class="sesion-label">Sesión activa</div>
+      <div class="sesion-nombre" id="sesionNombre">—</div>
+      <div class="sesion-rol" id="sesionRol">—</div>
+    </div>
+    <button id="cerrarMenu" onclick="cerrarMenu()">✕</button>
+  </div>
+  <nav id="menuNav">
+    <div class="menu-sep">Operación</div>
+    <button class="menu-item" data-vista="dashboard-tecnico" onclick="irA('dashboard-tecnico')">🏠 Inicio</button>
+    <button class="menu-item" data-vista="nuevo-reporte" onclick="irA('nuevo-reporte')">📝 Nuevo reporte</button>
+    <button class="menu-item" data-vista="mis-reportes" onclick="irA('mis-reportes')" id="menuTecMisReportes">📤 Mis Reportes</button>
+    <div class="menu-sep" id="menuSepAdmin" style="display:none;">Administración</div>
+    <button class="menu-item" data-vista="pendientes" onclick="irA('pendientes')" id="menuAdminPendientes" style="display:none;">
+      📥 Reportes Pendientes <span class="menu-badge" id="badgePendientes">0</span>
+    </button>
+    <button class="menu-item" data-vista="catalogos" onclick="irA('catalogos')" id="menuAdminCat" style="display:none;">🗂️ Catálogos</button>
+    <button class="menu-item" data-vista="costos" onclick="irA('costos')" id="menuAdminCos" style="display:none;">💰 Costos</button>
+    <button class="menu-item" data-vista="dashboard-admin" onclick="irA('dashboard-admin')" id="menuAdminDash" style="display:none;">📊 Dashboard</button>
+  </nav>
+  <div class="menu-footer">
+    <button id="btnCerrarSesion" onclick="cerrarSesion()">🔒 CERRAR SESIÓN</button>
+  </div>
+</div>
+
+<!-- ============ HEADER ============ -->
+<div class="app-header">
+  <button class="hamb" onclick="abrirMenu()">☰</button>
+  <div class="titulo">
+    <h1>R&J Induslift</h1>
+    <p id="headerSub">Mantenimiento de Equipos</p>
+  </div>
+  <div class="avatar" id="avatar">RJ</div>
+</div>
+<div class="app-stripe"></div>
+
+<!-- ============ OFFLINE BAR ============ -->
+<div id="offlineBar">
+  <span>📡</span>
+  <span id="offlineMsg">Sin conexión — los reportes se guardarán localmente</span>
+</div>
+
+<!-- ============ VISTAS ============ -->
+<main id="mainContainer">
+
+  <!-- VISTA: Dashboard Técnico -->
+  <section class="vista" id="vista-dashboard-tecnico">
+    <div class="kpi-grid">
+      <div class="kpi rojo">
+        <div class="lbl">🔴 Vencidos</div>
+        <div class="val" id="kpiVencidos">—</div>
+        <div class="sub">Requieren atención</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">🟡 Por vencer</div>
+        <div class="val" id="kpiPorVencer">—</div>
+        <div class="sub">Próximos 7 días</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>📋 Servicios pendientes</h3>
+      <div id="listaServicios">
+        <div class="loading"><div class="spinner"></div> Cargando servicios...</div>
+      </div>
+    </div>
+    <button class="btn" onclick="irA('nuevo-reporte')">+ Nuevo reporte libre</button>
+  </section>
+
+  <!-- VISTA: Nuevo Reporte -->
+  <section class="vista" id="vista-nuevo-reporte">
+    <h2>📝 Nuevo Reporte</h2>
+    <div id="avisoContinuar" class="alerta" style="display:none;"></div>
+
+    <div class="acordeon abierto" id="acc-info-servicio">
+      <button type="button" class="acordeon-header" onclick="toggleAcordeon('acc-info-servicio')">
+        <span class="icono">📋</span>
+        <span class="titulo-cat">Información del Servicio</span>
+        <span class="flecha">▶</span>
+      </button>
+      <div class="acordeon-cuerpo">
+        <div class="acordeon-cuerpo-inner">
+          <label>Tipo de mantenimiento *</label>
+          <select id="fTipoMantenimiento"><option value="Preventivo">Preventivo</option><option value="Correctivo">Correctivo</option></select>
+          <label>Fecha *</label><input type="date" id="fFecha" required>
+          <label>Cliente *</label><select id="fCliente" required><option value="">Cargando...</option></select>
+          <label>Equipo *</label><select id="fEquipo" required disabled><option value="">Selecciona un cliente primero</option></select>
+          <label>Área / Ubicación</label><input type="text" id="fArea" placeholder="Ej. Galpón de Despacho 02">
+        </div>
+      </div>
+    </div>
+
+    <div class="acordeon abierto" id="acc-responsables">
+      <button type="button" class="acordeon-header" onclick="toggleAcordeon('acc-responsables')">
+        <span class="icono">👥</span>
+        <span class="titulo-cat">Responsables</span>
+        <span class="flecha">▶</span>
+      </button>
+      <div class="acordeon-cuerpo">
+        <div class="acordeon-cuerpo-inner">
+          <label>Solicitante *</label><input type="text" id="fSolicitante" placeholder="Nombre / Departamento" required>
+          <label>Responsable principal</label><input type="text" id="fResponsable" placeholder="Ej. Juan Pérez">
+          <label>Mecánico principal</label><input type="text" id="fMecanico" placeholder="Ej. Pedro Rodríguez">
+          <label>Tiempo de parada</label><input type="text" id="fTiempoParada" placeholder="Ej. 3 horas">
+        </div>
+      </div>
+    </div>
+
+    <div class="acordeon" id="acc-datos-adicionales">
+      <button type="button" class="acordeon-header" onclick="toggleAcordeon('acc-datos-adicionales')">
+        <span class="icono">📅</span>
+        <span class="titulo-cat">Datos Adicionales</span>
+        <span class="flecha">▶</span>
+      </button>
+      <div class="acordeon-cuerpo">
+        <div class="acordeon-cuerpo-inner">
+          <label>Horómetro actual</label><input type="text" id="fHorometro" placeholder="Ej. 1847.5">
+          <div style="font-size:11px;color:#888;margin-top:4px;" id="fHorometroAnterior"></div>
+          <label>Fecha de inicio del servicio</label><input type="date" id="fFechaInicio">
+          <label>Fecha de finalización del servicio</label><input type="date" id="fFechaFin">
+        </div>
+      </div>
+    </div>
+
+    <div class="card azul" id="resumenSeleccion" style="display:none;">
+      <h3>🔍 Equipo Seleccionado</h3>
+      <div id="resumenContenido" style="font-size:13px; line-height:1.8;"></div>
+    </div>
+
+    <button class="btn" id="btnContinuarChecklist" onclick="continuarAChecklist()" disabled>Continuar → Checklist R/E/P</button>
+    <button class="btn gris" onclick="cancelarReporte()">Cancelar</button>
+  </section>
+
+  <!-- VISTAS ADMIN -->
+  <section class="vista" id="vista-mis-reportes">
+    <h2>📤 Mis Reportes</h2>
+    <div id="misReportesLista"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+  </section>
+
+  <section class="vista" id="vista-pendientes">
+    <h2>📥 Reportes Pendientes de Validación</h2>
+    <div class="pendientes-filtros">
+      <select id="filtroPendTecnico" onchange="filtrarPendientes()"><option value="">Todos los técnicos</option></select>
+      <input type="date" id="filtroPendFecha" onchange="filtrarPendientes()">
+      <input type="text" id="filtroPendCliente" placeholder="Cliente..." oninput="filtrarPendientes()">
+    </div>
+    <div id="pendientesLista"><div class="loading"><div class="spinner"></div> Cargando...</div></div>
+  </section>
+
+  <section class="vista" id="vista-revisar">
+    <button class="btn gris" style="margin-bottom:14px;" onclick="volverAPendientes()">← Volver a pendientes</button>
+    <div id="revisarContenido"><div class="loading"><div class="spinner"></div> Cargando reporte...</div></div>
+  </section>
+
+  <section class="vista" id="vista-dashboard-admin">
+    <h2>📊 Dashboard Administrativo</h2>
+    <div class="alerta">Próximamente: KPIs operativos y financieros.</div>
+  </section>
+
+  <section class="vista" id="vista-catalogos">
+    <h2>🗂️ Catálogos</h2>
+    <div class="catalog-tabs">
+      <button class="catalog-tab activo" data-tab="clientes" onclick="cambiarTabCatalogo('clientes')">👥 Clientes</button>
+      <button class="catalog-tab" data-tab="equipos" onclick="cambiarTabCatalogo('equipos')">🔧 Equipos</button>
+      <button class="catalog-tab" data-tab="repuestos" onclick="cambiarTabCatalogo('repuestos')">📦 Repuestos</button>
+      <button class="catalog-tab" data-tab="tarifas" onclick="cambiarTabCatalogo('tarifas')">💰 Tarifas</button>
+    </div>
+    <div class="catalog-header-acciones">
+      <input type="text" class="catalog-buscador" id="catalogBuscador" placeholder="Buscar..." oninput="filtrarCatalogo()">
+      <button class="btn" style="width:auto; padding:11px 16px; margin-top:0;" onclick="abrirFormCatalogo()">+ Agregar</button>
+    </div>
+    <div class="catalog-lista" id="catalogoLista">
+      <div class="loading"><div class="spinner"></div> Cargando...</div>
+    </div>
+  </section>
+
+  <section class="vista" id="vista-costos">
+    <h2>💰 Carga de Costos</h2>
+    <div class="alerta">Próximamente: cálculo con niveles A/B/C, repuestos y conversión Bs.</div>
+  </section>
+
+</main>
+
+<!-- ============ OVERLAY DE ENVÍO ============ -->
+<div id="enviandoOverlay" class="enviando-overlay">
+  <div class="enviando-caja">
+    <div class="enviando-spinner"></div>
+    <div class="enviando-titulo" id="enviandoTitulo">Guardando reporte...</div>
+    <div class="enviando-mensaje" id="enviandoMensaje">Por favor espera, esto puede tardar unos segundos.</div>
+  </div>
+</div>
+
+<!-- ============ MODAL FORM CATÁLOGO ============ -->
+<div id="modalFormCatalogo" class="modal-form-overlay">
+  <div class="modal-form-caja">
+    <h3><span id="modalFormTitulo">Nuevo</span><button type="button" onclick="cerrarFormCatalogo()">✕</button></h3>
+    <div id="modalFormContenido"></div>
+    <div class="modal-form-acciones">
+      <button type="button" class="btn-cancelar" onclick="cerrarFormCatalogo()">Cancelar</button>
+      <button type="button" class="btn-guardar" onclick="guardarItemCatalogo()" id="modalFormGuardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL GENÉRICO ============ -->
+<div id="modalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-caja">
+    <div class="modal-icono" id="modalIcono">ℹ️</div>
+    <div class="modal-titulo" id="modalTitulo">Aviso</div>
+    <div class="modal-mensaje" id="modalMensaje"></div>
+    <div class="modal-botones" id="modalBotones"></div>
+  </div>
+</div>
+
+<!-- ============ SCRIPTS ============ -->
+<script src="api.js"></script>
+<script src="core.js"></script>
+<script src="admin.js"></script>
+
+<!-- Registrar Service Worker -->
 <script>
-// ===== CONFIGURACIÓN =====
-var URL_APP = 'https://script.google.com/macros/s/AKfycbyp1B6WwOd6d2-Od_2KMZXsYR3NzbZEhy4y-7kQKl95GYn3y2PNylxp5TxXre4utMmizg/exec';
-
-// ===== ABRIR LA APP =====
-function abrirApp() {
-  var btn = document.getElementById('btnAbrir');
-  var cargando = document.getElementById('cargando');
-  
-  btn.style.display = 'none';
-  cargando.classList.add('visible');
-  
-  // Detectar si es móvil
-  var esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  
-  // Abrir la app
-  var win = window.open(URL_APP, '_blank');
-  
-  // Si el navegador bloqueó la apertura, redirigir en la misma pestaña
-  if (!win || win.closed || typeof win.closed === 'undefined') {
-    window.location.href = URL_APP;
-  }
-  
-  // Volver al splash después de 2 segundos
-  setTimeout(function() {
-    btn.style.display = 'inline-flex';
-    cargando.classList.remove('visible');
-  }, 2000);
-}
-
-// ===== REGISTRO DEL SERVICE WORKER =====
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
@@ -147,9 +271,5 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-  <script src="api.js"></script>
-  <script src="core.js"></script>
-  <script src="admin.js"></script>
- 
 </body>
 </html>
