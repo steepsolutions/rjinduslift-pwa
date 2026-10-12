@@ -20,10 +20,13 @@ function cargarDashboardTecnico_(){
     e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando servicios...</div>';
     fetch(API_URL + '?accion=obtenerServiciosDelDia')
     .then(response => response.json())
-    .then(a => {
+    .then(respuesta => {
+        // ⚠️ IMPORTANTE: La respuesta viene dentro de "data"
+        const a = respuesta.data || respuesta;
+        
         // Validar que la respuesta sea la esperada
         if (!a || !a.totales) {
-            console.warn("Respuesta inesperada del servidor:", a);
+            console.warn("Respuesta inesperada del servidor:", respuesta);
             if(t) t.textContent = "—";
             if(o) o.textContent = "—";
             e.innerHTML = '<div class="alerta rojo">El servidor no devolvió los datos esperados. Revisa la consola (F12).</div>';
