@@ -269,18 +269,28 @@ async function guardarItemCatalogo(){
     miError("Error de conexión", err.message);
 }
 
-function toggleCliente(e,t){miConfirm("¿Seguro que quieres "+(t?"activar":"desactivar")+" este cliente?",{icono:"❓",titulo:"Confirmar",textoSi:t?"Activar":"Desactivar"}).then(function(o){
-    if(o) {
-    try {
-        const res = await apiFetch(API_URL + '?accion=actualizarCliente', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo: e, datos: { Activo: t ? "SI" : "NO" } })
-        });
-        if(res.exito) cargarTabCatalogo_(); else miError("Error", res.error);
-    } catch(err) {
-        miError("Error", err.message);
-    }
+async function toggleCliente(e,t){
+    miConfirm(
+        "¿Seguro que quieres " + (t ? "activar" : "desactivar") + " este cliente?",
+        {icono:"❓", titulo:"Confirmar", textoSi: t ? "Activar" : "Desactivar"}
+    ).then(async function(o){
+        if(o) {
+            try {
+                const res = await apiFetch(API_URL + '?accion=actualizarCliente', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo: e, datos: { Activo: t ? "SI" : "NO" } })
+                });
+                if(res.exito) {
+                    cargarTabCatalogo_();
+                } else {
+                    miError("Error", res.error || "Error desconocido");
+                }
+            } catch(err) {
+                miError("Error", err.message);
+            }
+        }
+    });
 }
 
 function escaparHTML_(e){return String(e||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
