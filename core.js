@@ -24,7 +24,6 @@ function cargarDashboardTecnico_(){
         // ⚠️ IMPORTANTE: La respuesta viene dentro de "data"
         const a = respuesta.data || respuesta;
         
-        // Validar que la respuesta sea la esperada
         if (!a || !a.totales) {
             console.warn("Respuesta inesperada del servidor:", respuesta);
             if(t) t.textContent = "—";
