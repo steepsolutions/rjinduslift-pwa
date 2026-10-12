@@ -32,16 +32,23 @@ self.addEventListener('activate', function(event) {
 });
 
 self.addEventListener('fetch', function(event) {
-  // No cachear el iframe de Google (GAS maneja su propia caché)
-  if (event.request.url.indexOf('script.google.com') !== -1 ||
-      event.request.url.indexOf('googleusercontent.com') !== -1 ||
-      event.request.url.indexOf('google.com') !== -1) {
-    return;
+  const url = event.request.url;
+
+  // 1. NO interceptar llamadas a Google (Apps Script, APIs, etc.)
+  if (url.indexOf('script.google.com') !== -1 ||
+      url.indexOf('googleusercontent.com') !== -1 ||
+      url.indexOf('google.com') !== -1) {
+    return; // Dejar que el navegador maneje la petición normalmente
   }
 
+  // 2. Para el resto, usar caché primero, luego red
   event.respondWith(
     caches.match(event.request).then(function(response) {
-      return response || fetch(event.request).then(function(fetchResponse) {
+      if (response) {
+        return response; // Devolver desde caché
+      }
+      return fetch(event.request).then(function(fetchResponse) {
+        // Solo cachear peticiones GET exitosas
         if (event.request.method === 'GET' && fetchResponse.ok) {
           const responseClone = fetchResponse.clone();
           caches.open(CACHE_NAME).then(function(cache) {
@@ -51,7 +58,12 @@ self.addEventListener('fetch', function(event) {
         return fetchResponse;
       });
     }).catch(function() {
-      return caches.match('./index.html');
+      // Solo devolver index.html si la petición es para una página HTML
+      if (event.request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
+      // Para otros recursos, devolver un error limpio
+      return new Response('', { status: 404, statusText: 'Not Found' });
     })
   );
 });
