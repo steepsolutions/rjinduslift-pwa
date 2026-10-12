@@ -2,7 +2,14 @@ const USUARIOS={1234:{nombre:"Pedro Perez",rol:"tecnico",iniciales:"PP"},5678:{n
 const API_URL = 'https://script.google.com/macros/s/AKfycbyp1B6WwOd6d2-Od_2KMZXsYR3NzbZEhy4y-7kQKl95GYn3y2PNylxp5TxXre4utMmizg/exec';
 // ⚠️ Helper para desenvolver la respuesta del backend
 // El backend siempre devuelve {data: ...} o {__error: ...}
+// ⚠️ Helper para desenvolver la respuesta del backend
+// El backend siempre devuelve {data: ...} o {__error: ...}
 async function apiFetch(url, options) {
+    // Si es un POST, forzamos text/plain para evitar el preflight de CORS
+    if (options && options.method === 'POST') {
+        options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+    }
+    
     const response = await fetch(url, options);
     const json = await response.json();
     
