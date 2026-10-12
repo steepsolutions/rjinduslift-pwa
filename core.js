@@ -21,20 +21,27 @@ function cargarDashboardTecnico_(){
     fetch(API_URL + '?accion=obtenerServiciosDelDia')
     .then(response => response.json())
     .then(a => {
-        if(t) t.textContent=a.totales.vencidos;
-        if(o) o.textContent=a.totales.porVencer;
-        if(!a.servicios||0===a.servicios.length) return void(e.innerHTML='<div class="alerta">No hay servicios programados. Crea un nuevo reporte libre.</div>');
-        let n="";
-        a.servicios.forEach(function(e){
-            const t=ESTADO_LABEL[e.estado]||ESTADO_LABEL.pendiente,o="vencido"===e.estado?" urgente":"",a=e.cliente||"—",i=[e.tipo,e.marca].filter(Boolean).join(" ");
-            n+='<div class="tarea'+o+'" onclick="abrirReporteParaEquipo(\''+e.codigo+'\')"><span class="badge '+t.clase+'">'+t.icono+" "+t.texto+'</span><div class="eq">'+e.codigo+" — "+i+'</div><div class="cliente">'+a+(e.area?" · "+e.area:"")+"</div></div>"
-        }),e.innerHTML=n
-    })
-    .catch(t => {
-        e.innerHTML='<div class="alerta rojo">Error al cargar: '+t.message+"</div>"
+    // Validar que la respuesta sea la esperada
+    if (!a || !a.totales) {
+        console.warn("Respuesta inesperada del servidor:", a);
+        if(t) t.textContent = "—";
+        if(o) o.textContent = "—";
+        e.innerHTML = '<div class="alerta rojo">El servidor no devolvió los datos esperados. Revisa la consola (F12).</div>';
+        return;
+    }
+    if(t) t.textContent = a.totales.vencidos;
+    if(o) o.textContent = a.totales.porVencer;
+    if(!a.servicios || 0 === a.servicios.length) {
+        e.innerHTML = '<div class="alerta">No hay servicios programados. Crea un nuevo reporte libre.</div>';
+        return;
+    }
+    let n = "";
+    a.servicios.forEach(function(e) {
+        // ... tu código de renderizado ...
     });
-}
-
+    e.innerHTML = n;
+})
+    
 function abrirReporteParaEquipo(e){irA("nuevo-reporte");let t=0;const o=setInterval(function(){t++;const a=document.getElementById("fCliente"),n=document.getElementById("fEquipo");if(!DATOS_FORM||a.options.length<2)return void(t>25&&clearInterval(o));let i=null;Object.keys(DATOS_FORM.equiposPorCliente).forEach(function(t){DATOS_FORM.equiposPorCliente[t].some(function(t){return t.codigo===e})&&(i=t)}),i?(a.value=i,a.dispatchEvent(new Event("change")),setTimeout(function(){n.value=e,n.dispatchEvent(new Event("change"))},100),clearInterval(o)):clearInterval(o)},200)}
 function cargarVista(e){"dashboard-tecnico"===e&&cargarDashboardTecnico_(),"nuevo-reporte"===e&&cargarFormularioNuevoReporte_(),"catalogos"===e&&cargarTabCatalogo_(),"mis-reportes"===e&&cargarMisReportes_(),"pendientes"===e&&cargarPendientes_()}
 let DATOS_FORM=null;
