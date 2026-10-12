@@ -67,15 +67,26 @@ function cargarFormularioNuevoReporte_(){
     e.innerHTML='<option value="">Cargando...</option>',t.innerHTML='<option value="">Selecciona un cliente primero</option>',t.disabled=!0;
     fetch(API_URL + '?accion=obtenerDatosFormulario')
     .then(response => response.json())
-    .then(data => {
-        DATOS_FORM=data;
-        document.getElementById("fFecha").value=data.hoy;
+    .then(respuesta => {
+        // ⚠️ IMPORTANTE: La respuesta viene dentro de "data"
+        const data = respuesta.data || respuesta;
+        
+        // Validar que la respuesta sea la esperada
+        if (!data || !data.clientes) {
+            console.warn("Respuesta inesperada del servidor:", respuesta);
+            e.innerHTML = '<option value="">Error: datos no válidos</option>';
+            return;
+        }
+        
+        DATOS_FORM = data;
+        document.getElementById("fFecha").value = data.hoy;
         llenarSelectClientes_();
         configurarEventosFormulario_();
-        setTimeout(restaurarEstadoAcordeonesDatos_,100)
+        setTimeout(restaurarEstadoAcordeonesDatos_, 100);
     })
     .catch(t => {
-        e.innerHTML='<option value="">Error: '+t.message+"</option>"
+        console.error("Error cargando formulario:", t);
+        e.innerHTML='<option value="">Error: '+t.message+"</option>";
     });
 }
 
