@@ -28,22 +28,11 @@ function actualizarEstadoConexion(){const e=document.getElementById("offlineBar"
 window.addEventListener("online",actualizarEstadoConexion),window.addEventListener("offline",actualizarEstadoConexion),document.addEventListener("DOMContentLoaded",function(){actualizarEstadoConexion(),[0,1,2,3].forEach(function(e){const t=document.getElementById("pin"+e);t.addEventListener("input",function(){this.value=this.value.replace(/\D/g,"").slice(0,1),this.value&&e<3&&document.getElementById("pin"+(e+1)).focus(),3===e&&this.value&&validarPin()}),t.addEventListener("keydown",function(t){"Backspace"===t.key&&!this.value&&e>0&&document.getElementById("pin"+(e-1)).focus(),"Enter"===t.key&&validarPin()})}),document.getElementById("btnLogin").addEventListener("click",validarPin);const e=obtenerSesion();e&&sesionValida()?iniciarApp_(e.usuario):setTimeout(function(){document.getElementById("pin0").focus()},100)});
 const ESTADO_LABEL={vencido:{texto:"VENCIDO",clase:"rojo",icono:"🔴"},"por-vencer":{texto:"POR VENCER",clase:"",icono:"🟡"},pendiente:{texto:"PENDIENTE",clase:"",icono:"⚪"},"al-dia":{texto:"AL DÍA",clase:"verde",icono:"🟢"}};
 
-function cargarDashboardTecnico_(){
+async function cargarDashboardTecnico_(){
     const e=document.getElementById("listaServicios"),t=document.getElementById("kpiVencidos"),o=document.getElementById("kpiPorVencer");
     e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando servicios...</div>';
-    fetch(API_URL + '?accion=obtenerServiciosDelDia')
-    .then(response => response.json())
-    .then(respuesta => {
-        // ⚠️ IMPORTANTE: La respuesta viene dentro de "data"
-        const a = respuesta.data || respuesta;
-        
-        if (!a || !a.totales) {
-            console.warn("Respuesta inesperada del servidor:", respuesta);
-            if(t) t.textContent = "—";
-            if(o) o.textContent = "—";
-            e.innerHTML = '<div class="alerta rojo">El servidor no devolvió los datos esperados. Revisa la consola (F12).</div>';
-            return;
-        }
+    try {
+        const a = await apiFetch(API_URL + '?accion=obtenerServiciosDelDia');
         if(t) t.textContent = a.totales.vencidos;
         if(o) o.textContent = a.totales.porVencer;
         if(!a.servicios || 0 === a.servicios.length) {
@@ -63,44 +52,30 @@ function cargarDashboardTecnico_(){
             n += '</div>';
         });
         e.innerHTML = n;
-    })
-    .catch(err => {
+    } catch(err) {
         console.error("Error cargando dashboard:", err);
-        e.innerHTML = '<div class="alerta rojo">Error de conexión: ' + err.message + '</div>';
-    });
+        e.innerHTML = '<div class="alerta rojo">Error: ' + err.message + '</div>';
+    }
 }
     
 function abrirReporteParaEquipo(e){irA("nuevo-reporte");let t=0;const o=setInterval(function(){t++;const a=document.getElementById("fCliente"),n=document.getElementById("fEquipo");if(!DATOS_FORM||a.options.length<2)return void(t>25&&clearInterval(o));let i=null;Object.keys(DATOS_FORM.equiposPorCliente).forEach(function(t){DATOS_FORM.equiposPorCliente[t].some(function(t){return t.codigo===e})&&(i=t)}),i?(a.value=i,a.dispatchEvent(new Event("change")),setTimeout(function(){n.value=e,n.dispatchEvent(new Event("change"))},100),clearInterval(o)):clearInterval(o)},200)}
 function cargarVista(e){"dashboard-tecnico"===e&&cargarDashboardTecnico_(),"nuevo-reporte"===e&&cargarFormularioNuevoReporte_(),"catalogos"===e&&cargarTabCatalogo_(),"mis-reportes"===e&&cargarMisReportes_(),"pendientes"===e&&cargarPendientes_()}
 let DATOS_FORM=null;
 
-function cargarFormularioNuevoReporte_(){
+async function cargarFormularioNuevoReporte_(){
     if(DATOS_FORM) return void llenarSelectClientes_();
     const e=document.getElementById("fCliente"),t=document.getElementById("fEquipo");
     e.innerHTML='<option value="">Cargando...</option>',t.innerHTML='<option value="">Selecciona un cliente primero</option>',t.disabled=!0;
-    fetch(API_URL + '?accion=obtenerDatosFormulario')
-    .then(response => response.json())
-    .then(respuesta => {
-        // ⚠️ IMPORTANTE: La respuesta viene dentro de "data"
-        const data = respuesta.data || respuesta;
-        
-        // Validar que la respuesta sea la esperada
-        if (!data || !data.clientes) {
-            console.warn("Respuesta inesperada del servidor:", respuesta);
-            e.innerHTML = '<option value="">Error: datos no válidos</option>';
-            return;
-        }
-        
+    try {
+        const data = await apiFetch(API_URL + '?accion=obtenerDatosFormulario');
         DATOS_FORM = data;
         document.getElementById("fFecha").value = data.hoy;
         llenarSelectClientes_();
         configurarEventosFormulario_();
         setTimeout(restaurarEstadoAcordeonesDatos_, 100);
-    })
-    .catch(t => {
-        console.error("Error cargando formulario:", t);
+    } catch(t) {
         e.innerHTML='<option value="">Error: '+t.message+"</option>";
-    });
+    }
 }
 
 function llenarSelectClientes_(){const e=document.getElementById("fCliente");e.innerHTML='<option value="">Selecciona un cliente</option>',DATOS_FORM.clientes.forEach(function(t){const o=document.createElement("option");o.value=t.razonSocial,o.textContent=t.razonSocial,e.appendChild(o)})}
@@ -112,21 +87,19 @@ let DATOS_CHECKLIST=[],RESPUESTAS={},EQUIPO_CHECKLIST_ACTIVO=null;
 function continuarAChecklist(){const e=document.getElementById("fCliente").value,t=document.getElementById("fEquipo").value;if(!e||!t)return void miAlert("Selecciona cliente y equipo primero.",{icono:"⚠️",titulo:"Faltan datos"});const o=(DATOS_FORM.equiposPorCliente[e]||[]).find(function(e){return e.codigo===t});if(o){if(EQUIPO_CHECKLIST_ACTIVO===t){document.getElementById("vista-nuevo-reporte").classList.remove("activa");const e=document.getElementById("vista-checklist");if(e)return e.classList.add("activa"),void window.scrollTo(0,0)}mostrarVistaChecklist_(o,o.tipo)}else miAlert("No se encontró la información del equipo.",{icono:"❌",titulo:"Equipo no encontrado"})}
 function cancelarReporte(){EQUIPO_CHECKLIST_ACTIVO=null,RESPUESTAS={},DATOS_CHECKLIST=[],document.getElementById("fCliente").value="",document.getElementById("fEquipo").innerHTML='<option value="">Selecciona un cliente primero</option>',document.getElementById("fEquipo").disabled=!0,document.getElementById("fArea").value="",document.getElementById("fHorometro").value="",document.getElementById("fSolicitante").value="",document.getElementById("fResponsable").value="",document.getElementById("fMecanico").value="",document.getElementById("fTiempoParada").value="",document.getElementById("fFechaInicio").value="",document.getElementById("fFechaFin").value="",document.getElementById("resumenSeleccion").style.display="none",document.getElementById("btnContinuarChecklist").disabled=!0,irA("dashboard-tecnico")}
 
-function mostrarVistaChecklist_(e,t){
+async function mostrarVistaChecklist_(e,t){
     document.getElementById("vista-nuevo-reporte").classList.remove("activa");
     let o=document.getElementById("vista-checklist");
     o||(o=document.createElement("section"),o.id="vista-checklist",o.className="vista",document.getElementById("mainContainer").appendChild(o)),o.classList.add("activa"),o.innerHTML='<div class="loading"><div class="spinner"></div> Cargando checklist...</div>',RESPUESTAS={};
-    fetch(API_URL + '?accion=obtenerChecklistPorTipo&tipo=' + encodeURIComponent(t))
-    .then(response => response.json())
-    .then(data => {
-        DATOS_CHECKLIST=data;
+    try {
+        const data = await apiFetch(API_URL + '?accion=obtenerChecklistPorTipo&tipo=' + encodeURIComponent(t));
+        DATOS_CHECKLIST = data;
         renderizarChecklist_(e,t);
         EQUIPO_CHECKLIST_ACTIVO=e.codigo;
-    })
-    .catch(err => {
+    } catch(err) {
         console.error("Error cargando checklist:", err);
         o.innerHTML = '<div class="alerta rojo">Error al cargar el checklist: ' + err.message + '</div>';
-    });
+    }
 }
 
 function renderizarChecklist_(e,t){const o=document.getElementById("vista-checklist");let a="<h2>✅ Checklist "+t+"</h2>";a+='<div class="alerta" style="background:#fff8e6;border-color:#f0d68b;color:#8a6200;"><b>'+e.codigo+"</b> — "+[e.marca,e.modelo].filter(Boolean).join(" ")+"<br><b>R</b> = Revisado / OK · <b>E</b> = Ejecutado / Reemplazado · <b>P</b> = Pendiente / Deteriorado</div>",a+='<div class="barra-contadores"><div class="contadores-grupo"><span id="cntR" style="background:#e6f3d5;color:#4a7a15;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:800;">R: 0</span><span id="cntE" style="background:#dfe9f7;color:#1c4a8a;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:800;">E: 0</span><span id="cntP" style="background:#fad6d1;color:#8a1f13;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:800;">P: 0</span></div><button type="button" class="btn-expandir" id="btnExpandirTodo" onclick="toggleExpandirTodo()"><span id="expandirIcono">↕</span> <span id="expandirTexto">Expandir todo</span></button></div>',DATOS_CHECKLIST.forEach(function(e,t){const o="acc-cat-"+t,n=e.items.length;a+='<div class="acordeon" id="'+o+'" data-cat-idx="'+t+'">',a+='<button type="button" class="acordeon-header" onclick="toggleAcordeonCategoria(\''+o+'\')"><span class="icono">📁</span><span class="titulo-cat">'+e.categoria+'</span><span class="contador" id="cnt-cat-'+t+'">0/'+n+'</span><span class="flecha">▶</span></button>',a+='<div class="acordeon-cuerpo">',a+='<div class="acordeon-cuerpo-inner">',a+='<div id="items-cat-'+t+'">'+renderizarItemsCategoria_(e,t)+"</div>",a+='<button type="button" class="btn-agregar-item" onclick="mostrarFormAgregarItem('+t+')">+ Agregar ítem a esta categoría</button>',a+='<div class="form-agregar-item" id="form-agregar-'+t+'"><input type="text" id="input-agregar-'+t+'" placeholder="Ej. Soporte de batería partido" onkeydown="if(event.key===\'Enter\'){event.preventDefault();confirmarAgregarItem('+t+');}"><button type="button" class="btn-guardar" onclick="confirmarAgregarItem('+t+')">Agregar</button><button type="button" class="btn-cancelar" onclick="cancelarAgregarItem('+t+')">✕</button></div>',a+="</div></div></div>"}),a+='<div class="cierre-seccion"><h3>📋 Informe Técnico Detallado (opcional)</h3><label>Motivo de ingreso</label><textarea id="infoMotivo" placeholder="Ej. Mantenimiento preventivo programado · Reporte de operador sobre ruido"></textarea><label style="margin-top:12px;">Diagnóstico / Revisión técnica</label><textarea id="infoDiagnostico" placeholder="Ej. Rodamiento de mástil con desgaste leve · Mangueras con porosidad incipiente"></textarea><label style="margin-top:12px;">Actividades adicionales</label><textarea id="infoActividades" placeholder="Actividades que no están en el checklist · Notas del trabajo"></textarea><label style="margin-top:12px;">Repuestos usados (descripción libre)</label><textarea id="infoRepuestos" placeholder="Ej. Filtro de aceite, aceite 15W40, bujía de motor"></textarea><label style="margin-top:12px;">Recomendaciones</label><textarea id="infoRecomendaciones" placeholder="Ej. Programar reemplazo de rodamiento en 100 horas · Cambiar mangueras en el próximo servicio"></textarea></div>',a+='<div class="cierre-seccion"><h3>📷 Evidencia Fotográfica</h3><div class="foto-campo"><label>Foto ANTES del servicio</label><div class="foto-botones"><button type="button" class="foto-btn" onclick="document.getElementById(\'fotoAntesCamara\').click()">📷 Cámara</button><button type="button" class="foto-btn" onclick="document.getElementById(\'fotoAntesGaleria\').click()">🖼️ Galería</button></div><input type="file" id="fotoAntesCamara" accept="image/*" capture="environment"><input type="file" id="fotoAntesGaleria" accept="image/*"><img id="previewAntes" class="foto-preview"></div><div class="foto-campo"><label>Foto DESPUÉS del servicio</label><div class="foto-botones"><button type="button" class="foto-btn" onclick="document.getElementById(\'fotoDespuesCamara\').click()">📷 Cámara</button><button type="button" class="foto-btn" onclick="document.getElementById(\'fotoDespuesGaleria\').click()">🖼️ Galería</button></div><input type="file" id="fotoDespuesCamara" accept="image/*" capture="environment"><input type="file" id="fotoDespuesGaleria" accept="image/*"><img id="previewDespues" class="foto-preview"></div><div class="foto-campo"><label>Fotos adicionales (opcional, varias)</label><div class="foto-botones"><button type="button" class="foto-btn" onclick="document.getElementById(\'fotosAdicCamara\').click()">📷 Cámara</button><button type="button" class="foto-btn" onclick="document.getElementById(\'fotosAdicGaleria\').click()">🖼️ Galería</button></div><input type="file" id="fotosAdicCamara" accept="image/*" capture="environment" multiple><input type="file" id="fotosAdicGaleria" accept="image/*" multiple><div id="fotosAdicPreview" class="fotos-adicionales-grid"></div></div></div>',a+='<div class="cierre-seccion"><h3>✍️ Firma del Técnico</h3><label>Nombre completo de quien firma *</label><input type="text" id="nombreFirmante" placeholder="Ej. Pedro Pérez" required><label style="margin-top:12px;">Dibuja tu firma con el dedo</label><div class="firma-wrap"><canvas id="firmaCanvas" class="firma-canvas"></canvas></div><button type="button" class="firma-btn-limpiar" onclick="limpiarFirma()">🧹 Limpiar firma</button><div id="firmaStatus" class="firma-status">Aún no has firmado</div></div>';const n=(obtenerSesion()||{}).usuario&&"admin"===obtenerSesion().usuario.rol;n&&(a+='<div class="costos-seccion" id="costosSeccion"><h3>💰 Costos del Servicio <span class="badge-admin">👑 SOLO ADMIN</span></h3><label style="margin-top:0;">Nivel de mano de obra</label><div class="niveles-costo" id="nivelesCosto"><button type="button" class="nivel-costo-btn" data-nivel="A" onclick="seleccionarNivelCosto(\'A\')"><span class="letra">A</span><span class="precio" id="precioNivelA">$—/h</span></button><button type="button" class="nivel-costo-btn activo" data-nivel="B" onclick="seleccionarNivelCosto(\'B\')"><span class="letra">B</span><span class="precio" id="precioNivelB">$—/h</span></button><button type="button" class="nivel-costo-btn" data-nivel="C" onclick="seleccionarNivelCosto(\'C\')"><span class="letra">C</span><span class="precio" id="precioNivelC">$—/h</span></button></div><label>Horas trabajadas</label><input type="number" id="horasTrabajadas" step="0.25" min="0" placeholder="Ej. 3.5" oninput="recalcularCostos()" style="margin-bottom:12px;"><label>📦 Repuestos y materiales</label><div class="buscador-repuestos"><input type="text" class="buscador-input" id="buscadorRepuestos" placeholder="Buscar repuesto... (ej. filtro, aceite)" autocomplete="off" oninput="buscarRepuestosSugerencias()" onfocus="buscarRepuestosSugerencias()"><div class="sugerencias" id="sugerenciasRepuestos"></div></div><div class="repuestos-cargados" id="repuestosCargados"></div><label>📋 Otros (imprevistos)</label><div class="otros-lista" id="otrosLista"></div><button type="button" class="btn-agregar-mini" onclick="agregarOtroItem()">+ Agregar otro</button><div class="toggle-recargo" id="toggleRecargo" onclick="toggleRecargo(event)"><div class="checkbox" id="checkRecargo">✓</div><span class="texto">Aplicar recargo por emergencia</span><input type="number" class="porcentaje" id="recargoPorcentaje" value="30" min="0" max="100" onclick="event.stopPropagation()" oninput="recalcularCostos()"><span style="font-size:12px;font-weight:800;color:#8a6200;">%</span></div><div class="tasa-input-wrap"><label>Tasa BCV (Bs/USD) *</label><input type="number" id="tasaBCV" step="0.0001" min="0" placeholder="36.5432" oninput="recalcularCostos()"></div><div class="totales-resumen" id="totalesResumen"><div class="fila"><span>Subtotal Mano Obra</span><span id="txtSubtotalMO">$0.00</span></div><div class="fila"><span>Subtotal Repuestos</span><span id="txtSubtotalRep">$0.00</span></div><div class="fila"><span>Subtotal Otros</span><span id="txtSubtotalOtros">$0.00</span></div><div class="fila"><span>Subtotal General</span><span id="txtSubtotal">$0.00</span></div><div class="fila" id="filaRecargo" style="display:none"><span>Recargo <span id="txtRecargoPct">0</span>%</span><span id="txtRecargo">$0.00</span></div><div class="fila"><span>IVA 16%</span><span id="txtIVA">$0.00</span></div><div class="fila total"><span>TOTAL USD</span><span id="txtTotalUSD">$0.00</span></div><div class="fila bs"><span>Total Bs</span><span id="txtTotalBs">Bs 0,00</span></div><div class="fila tasa-aplicada" id="filaTasaAplicada" style="display:none"><span id="txtTasaInfo">📅 Tasa aplicada</span></div></div></div>'),a+='<div class="cierre-seccion"><h3>📝 Observaciones y Cierre</h3><label>Observaciones para el cliente</label><textarea id="obsCliente" placeholder="Comentarios que aparecerán en el informe del cliente: recomendaciones, trabajos futuros, etc."></textarea><label style="margin-top:14px;">Notas internas del taller</label><textarea id="notasInternas" placeholder="Información solo para uso interno: comportamiento del operador, condiciones del sitio, observaciones del personal, etc."></textarea><div class="nota-interna">🔒 Estas notas NO aparecen en el PDF técnico del cliente. Solo se incluyen en el informe financiero interno.</div><label style="margin-top:14px;">Estado final del equipo *</label><select id="estadoFinal" class="estado-select" required onchange="actualizarAvisoEstado()"><option value="">— Selecciona el estado —</option><option value="Equipo entregado">✅ Equipo entregado (operativo)</option><option value="Equipo en reparación">🔧 Equipo en reparación</option><option value="Taller externo">🏭 Taller externo</option><option value="Pendiente de repuesto">⏸️ Pendiente de repuesto</option><option value="Fuera de servicio">❌ Fuera de servicio</option></select><div id="avisoEstado" style="display:none;margin-top:10px;"></div><label style="margin-top:14px;">Nota de cierre (opcional)</label><input type="text" id="notaCierre" placeholder="Ej. Trabajo terminado sin novedades" maxlength="120"></div>',a+='<button class="btn gris" onclick="volverADatosGenerales()">← Volver a datos generales</button>',a+=n?'<button class="btn verde" onclick="guardarReporteCompleto()" id="btnGuardarReporte">✅ Aprobar y Enviar al Cliente</button>':'<button class="btn" onclick="guardarReporteCompleto()" id="btnGuardarReporte">📤 Enviar al Administrador</button>',o.innerHTML=a,setTimeout(inicializarFotosYFirma_,150)}
@@ -161,24 +134,22 @@ async function guardarReporteCompleto(){
     const m=document.getElementById("enviandoOverlay");
     m.classList.add("activo"),document.getElementById("enviandoTitulo").textContent="Guardando reporte...",document.getElementById("enviandoMensaje").textContent="Generando PDFs y enviando correos. Esto puede tardar 30-60 segundos...";
     
-    fetch(API_URL + '?accion=guardarReporteDesdeApp', {
+    // Al final de la función guardarReporteCompleto, reemplaza el fetch por:
+try {
+    const res = await apiFetch(API_URL + '?accion=guardarReporteDesdeApp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(u)
-    })
-    .then(response => response.json())
-    .then(res => {
-        m.classList.remove("activo");
-        if(res && res.exito) {
-            if(o) mostrarPantallaExito_(res); else mostrarPantallaEnvioAlAdmin_(res);
-        } else {
-            miError("Error al guardar", res && res.error || "Error desconocido. Revisa la consola.");
-        }
-    })
-    .catch(err => {
-        m.classList.remove("activo");
-        miError("Error de conexión", err.message || "No se pudo conectar con el servidor. Verifica tu internet.");
     });
+    m.classList.remove("activo");
+    if(res && res.exito) {
+        if(o) mostrarPantallaExito_(res); else mostrarPantallaEnvioAlAdmin_(res);
+    } else {
+        miError("Error al guardar", res && res.error || "Error desconocido.");
+    }
+} catch(err) {
+    m.classList.remove("activo");
+    miError("Error de conexión", err.message);
 }
 
 function actualizarAvisoEstado(){const e=document.getElementById("estadoFinal"),t=document.getElementById("avisoEstado");if(!e||!t)return;const o=e.value;if(!o)return void(t.style.display="none");const a={"Equipo entregado":{color:"#6AAA1E",bg:"#e6f3d5",icono:"✅",texto:"<b>Reporte se cerrará.</b> El equipo vuelve operativo al cliente.<br>Se enviará correo al cliente y a los socios."},"Fuera de servicio":{color:"#C0392B",bg:"#fdf3f2",icono:"⚠️",texto:"<b>Reporte se cerrará con nota.</b> El equipo se devuelve al cliente declarado como NO operativo.<br>El PDF llevará leyenda destacada y se enviará correo a ambos."},"Equipo en reparación":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> El equipo sigue en taller para reparación.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando el equipo regrese."},"Taller externo":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> El equipo está en taller externo.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando vuelva."},"Pendiente de repuesto":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> En espera de llegada del repuesto.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando llegue el repuesto."}}[o];a?(t.style.display="block",t.style.background=a.bg,t.style.border="1px solid "+a.color,t.style.color=a.color,t.style.borderRadius="8px",t.style.padding="12px 14px",t.style.fontSize="12px",t.style.lineHeight="1.5",t.innerHTML='<div style="font-size:20px;margin-bottom:6px;">'+a.icono+"</div>"+a.texto):t.style.display="none"}
@@ -202,14 +173,14 @@ function actualizarStatusFirma_(){const e=document.getElementById("firmaStatus")
 function obtenerFirmaBase64_(){return _firmaTieneTrazo&&_firmaCanvas?{data:_firmaCanvas.toDataURL("image/png").split(",")[1],mimeType:"image/png",nombre:"firma.png"}:null}
 function inicializarFotosYFirma_(){CACHE_FOTOS.antes=null,CACHE_FOTOS.despues=null,CACHE_FOTOS.adicionales=[],configurarFotoUnica_("fotoAntes","previewAntes","antes"),configurarFotoUnica_("fotoDespues","previewDespues","despues"),configurarFotosAdicionales_(),setTimeout(function(){inicializarFirma_()},100),setTimeout(function(){inicializarCostos_()},150)}
 
-function cargarTarifasCostos_(){
-    fetch(API_URL + '?accion=obtenerTarifas')
-    .then(response => response.json())
-    .then(data => {
+async function cargarTarifasCostos_(){
+    try {
+        const data = await apiFetch(API_URL + '?accion=obtenerTarifas');
         data.forEach(function(e){COSTOS_ESTADO.tarifas[e.Nivel]=Number(e["Precio USD/Hora"])||0});
         actualizarPreciosNiveles_();
-    })
-    .catch(e => { console.warn("Error cargando tarifas:",e); });
+    } catch(e) {
+        console.warn("Error cargando tarifas:",e);
+    }
 }
 
 function actualizarPreciosNiveles_(){["A","B","C"].forEach(function(e){const t=document.getElementById("precioNivel"+e);if(t){const o=COSTOS_ESTADO.tarifas[e]||0;t.textContent="$"+o.toFixed(2)+"/h"}})}
@@ -221,11 +192,13 @@ function buscarRepuestosSugerencias(){
     const e=(document.getElementById("buscadorRepuestos").value||"").trim();
     clearTimeout(_buscadorTimeout);
     if(e.length<2) { ocultarSugerencias_(); return; }
-    _buscadorTimeout=setTimeout(function(){
-        fetch(API_URL + '?accion=obtenerRepuestos&termino=' + encodeURIComponent(e))
-        .then(response => response.json())
-        .then(data => { mostrarSugerencias_(data); })
-        .catch(e => { console.warn("Error buscando:",e); });
+    _buscadorTimeout=setTimeout(async function(){
+        try {
+            const data = await apiFetch(API_URL + '?accion=obtenerRepuestos&termino=' + encodeURIComponent(e));
+            mostrarSugerencias_(data);
+        } catch(e) {
+            console.warn("Error buscando:",e);
+        }
     },250);
 }
 
@@ -247,17 +220,15 @@ let CATALOGO_TAB_ACTIVO="clientes",CATALOGO_DATOS=[],CATALOGO_ITEM_EDITANDO=null
 function cambiarTabCatalogo(e){CATALOGO_TAB_ACTIVO=e,document.querySelectorAll(".catalog-tab").forEach(function(t){t.classList.toggle("activo",t.dataset.tab===e)}),document.getElementById("catalogBuscador").value="",cargarTabCatalogo_()}
 function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de equipos.</div>':"repuestos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de repuestos.</div>':"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
 
-function cargarClientes_(){
+async function cargarClientes_(){
     const e=document.getElementById("catalogoLista");
-    fetch(API_URL + '?accion=obtenerClientes')
-    .then(response => response.json())
-    .then(data => {
-        CATALOGO_DATOS=data||[];
+    try {
+        const data = await apiFetch(API_URL + '?accion=obtenerClientes');
+        CATALOGO_DATOS = data || [];
         renderizarClientes_(CATALOGO_DATOS);
-    })
-    .catch(t => {
-        e.innerHTML='<div class="alerta rojo">Error: '+t.message+"</div>"
-    });
+    } catch(t) {
+        e.innerHTML='<div class="alerta rojo">Error: '+t.message+"</div>";
+    }
 }
 
 function renderizarClientes_(e){const t=document.getElementById("catalogoLista");0!==e.length?(t.innerHTML="",e.forEach(function(e){const o="SI"===String(e.activo).toUpperCase(),a=document.createElement("div");a.className="catalog-item"+(o?"":" inactivo"),a.innerHTML='<div class="info"><div class="nombre">'+(e.razonSocial||"—")+'<span class="badge-nivel">'+(e.nivelTarifa||"—")+"</span>"+(o?"":'<span class="badge-inactivo">INACTIVO</span>')+'</div><div class="sub">'+(e.rif||"")+" · "+(e.contacto||"Sin contacto")+'</div></div><div class="acciones"><button class="btn-icono" title="Editar" onclick="editarCliente(\''+e.codigo+'\')">✏️</button><button class="btn-icono rojo" title="'+(o?"Desactivar":"Activar")+'" onclick="toggleCliente(\''+e.codigo+"', "+!o+')">'+(o?"🚫":"✓")+"</button></div>",t.appendChild(a)})):t.innerHTML='<div class="alerta">No hay clientes registrados. Toca "+ Agregar" para crear uno.</div>'}
@@ -277,41 +248,39 @@ async function guardarItemCatalogo(){
     const accion = CATALOGO_ITEM_EDITANDO ? 'actualizarCliente' : 'agregarCliente';
     const payload = CATALOGO_ITEM_EDITANDO ? { codigo: CATALOGO_ITEM_EDITANDO, datos: t } : t;
 
-    fetch(API_URL + '?accion=' + accion, {
+    try {
+    const res = await apiFetch(API_URL + '?accion=' + accion, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
-    })
-    .then(response => response.json())
-    .then(res => {
-        o.disabled=!1;
-        o.textContent="Guardar";
-        cerrarFormCatalogo();
-        if(res.exito) {
-            miExito("Cliente guardado", "Código: " + (res.codigo || 'N/A'));
-            cargarTabCatalogo_();
-        } else {
-            miError("Error al guardar", res.error || "Error desconocido");
-        }
-    })
-    .catch(err => {
-        o.disabled=!1;
-        o.textContent="Guardar";
-        miError("Error de conexión", err.message);
     });
+    o.disabled=!1;
+    o.textContent="Guardar";
+    cerrarFormCatalogo();
+    if(res.exito) {
+        miExito("Cliente guardado", "Código: " + (res.codigo || 'N/A'));
+        cargarTabCatalogo_();
+    } else {
+        miError("Error al guardar", res.error || "Error desconocido");
+    }
+} catch(err) {
+    o.disabled=!1;
+    o.textContent="Guardar";
+    miError("Error de conexión", err.message);
 }
 
 function toggleCliente(e,t){miConfirm("¿Seguro que quieres "+(t?"activar":"desactivar")+" este cliente?",{icono:"❓",titulo:"Confirmar",textoSi:t?"Activar":"Desactivar"}).then(function(o){
     if(o) {
-        fetch(API_URL + '?accion=actualizarCliente', {
+    try {
+        const res = await apiFetch(API_URL + '?accion=actualizarCliente', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ codigo: e, datos: { Activo: t ? "SI" : "NO" } })
-        })
-        .then(response => response.json())
-        .then(res => { if(res.exito) cargarTabCatalogo_(); else miError("Error", res.error); })
-        .catch(err => miError("Error", err.message));
+        });
+        if(res.exito) cargarTabCatalogo_(); else miError("Error", res.error);
+    } catch(err) {
+        miError("Error", err.message);
     }
-})}
+}
 
 function escaparHTML_(e){return String(e||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
