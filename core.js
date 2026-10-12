@@ -133,23 +133,21 @@ async function guardarReporteCompleto(){
     const u={fecha:document.getElementById("fFecha").value,cliente:a,area:document.getElementById("fArea").value,tipoEquipo:i.tipo,numeroEquipo:n,marca:i.marca||"",serial:i.serial||"",horometro:document.getElementById("fHorometro").value,tipoMantenimiento:document.getElementById("fTipoMantenimiento").value,solicitante:document.getElementById("fSolicitante").value,tiempoParada:document.getElementById("fTiempoParada").value,fechaInicioServicio:document.getElementById("fFechaInicio").value,fechaFinServicio:document.getElementById("fFechaFin").value,responsablePrincipal:document.getElementById("fResponsable").value,mecanicoPrincipal:document.getElementById("fMecanico").value,checklistR:r,checklistE:c,checklistP:s,itemsAdicionales:l,observaciones:(document.getElementById("obsCliente")||{}).value||"",notasInternas:(document.getElementById("notasInternas")||{}).value||"",nota:"",notaCierre:(document.getElementById("notaCierre")||{}).value||"",motivoIngreso:(document.getElementById("infoMotivo")||{}).value||"",diagnostico:(document.getElementById("infoDiagnostico")||{}).value||"",actividadesTexto:(document.getElementById("infoActividades")||{}).value||"",repuestosUsados:(document.getElementById("infoRepuestos")||{}).value||"",recomendaciones:(document.getElementById("infoRecomendaciones")||{}).value||"",estado:e,estadoReporte:o?"Cerrado":"Pendiente Validación",rolUsuario:(obtenerSesion()||{}).usuario?obtenerSesion().usuario.rol:"tecnico",nombreFirmante:t.trim(),fotoAntes:CACHE_FOTOS.antes,fotoDespues:CACHE_FOTOS.despues,fotosAdicionales:CACHE_FOTOS.adicionales,firmaImagen:obtenerFirmaBase64_(),costos:d,repuestosDetalle:COSTOS_ESTADO.repuestos||[],otrosDetalle:COSTOS_ESTADO.otros||[],aplicarRecargo:COSTOS_ESTADO.aplicarRecargo,recargoPorcentaje:COSTOS_ESTADO.recargoPorcentaje,cerrarReporte:estadoCierraReporte_(e)};
     const m=document.getElementById("enviandoOverlay");
     m.classList.add("activo"),document.getElementById("enviandoTitulo").textContent="Guardando reporte...",document.getElementById("enviandoMensaje").textContent="Generando PDFs y enviando correos. Esto puede tardar 30-60 segundos...";
-    
-    // Al final de la función guardarReporteCompleto, reemplaza el fetch por:
-try {
-    const res = await apiFetch(API_URL + '?accion=guardarReporteDesdeApp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(u)
-    });
-    m.classList.remove("activo");
-    if(res && res.exito) {
-        if(o) mostrarPantallaExito_(res); else mostrarPantallaEnvioAlAdmin_(res);
-    } else {
-        miError("Error al guardar", res && res.error || "Error desconocido.");
-    }
-} catch(err) {
-    m.classList.remove("activo");
-    miError("Error de conexión", err.message);
+    try {
+        const res = await apiFetch(API_URL + '?accion=guardarReporteDesdeApp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(u)
+        });
+        m.classList.remove("activo");
+        if(res && res.exito) {
+            if(o) mostrarPantallaExito_(res); else mostrarPantallaEnvioAlAdmin_(res);
+        } else {
+            miError("Error al guardar", res && res.error || "Error desconocido.");
+        }
+    } catch(err) {
+        m.classList.remove("activo");
+        miError("Error de conexión", err.message);
     }
 }
 
@@ -247,31 +245,30 @@ async function guardarItemCatalogo(){
     const t={"Razón Social":e.trim(),RIF:(document.getElementById("cfRif")||{}).value||"",Contacto:(document.getElementById("cfContacto")||{}).value||"","Teléfono":(document.getElementById("cfTelefono")||{}).value||"",Email:(document.getElementById("cfEmail")||{}).value||"","Dirección":(document.getElementById("cfDireccion")||{}).value||"","Nivel Tarifa":(document.getElementById("cfNivelTarifa")||{}).value||"B","WhatsApp Reportes":(document.getElementById("cfWhatsApp")||{}).value||"","Email Reportes":(document.getElementById("cfEmailReportes")||{}).value||"",Notas:(document.getElementById("cfNotas")||{}).value||""};
     const o=document.getElementById("modalFormGuardar");
     o.disabled=!0,o.textContent="Guardando...";
-    
     const accion = CATALOGO_ITEM_EDITANDO ? 'actualizarCliente' : 'agregarCliente';
     const payload = CATALOGO_ITEM_EDITANDO ? { codigo: CATALOGO_ITEM_EDITANDO, datos: t } : t;
-
     try {
-    const res = await apiFetch(API_URL + '?accion=' + accion, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    o.disabled=!1;
-    o.textContent="Guardar";
-    cerrarFormCatalogo();
-    if(res.exito) {
-        miExito("Cliente guardado", "Código: " + (res.codigo || 'N/A'));
-        cargarTabCatalogo_();
-    } else {
-        miError("Error al guardar", res.error || "Error desconocido");
+        const res = await apiFetch(API_URL + '?accion=' + accion, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        o.disabled=!1;
+        o.textContent="Guardar";
+        cerrarFormCatalogo();
+        if(res.exito) {
+            miExito("Cliente guardado", "Código: " + (res.codigo || 'N/A'));
+            cargarTabCatalogo_();
+        } else {
+            miError("Error al guardar", res.error || "Error desconocido");
+        }
+    } catch(err) {
+        o.disabled=!1;
+        o.textContent="Guardar";
+        miError("Error de conexión", err.message);
     }
-} catch(err) {
-    o.disabled=!1;
-    o.textContent="Guardar";
-    miError("Error de conexión", err.message);
-    }
-}    
+}   
+        
 
 async function toggleCliente(e,t){
     miConfirm(
