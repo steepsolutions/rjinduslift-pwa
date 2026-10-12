@@ -72,7 +72,7 @@ async function cargarFormularioNuevoReporte_(){
         document.getElementById("fFecha").value = data.hoy;
         llenarSelectClientes_();
         configurarEventosFormulario_();
-        setTimeout(restaurarEstadoAcordeonesDatos_, 100);
+        
     } catch(t) {
         e.innerHTML='<option value="">Error: '+t.message+"</option>";
     }
