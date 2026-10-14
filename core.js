@@ -17,7 +17,6 @@ async function apiFetch(url, options) {
         throw new Error(json.__error);
     }
     
-    // Si viene envuelto en "data", devolver solo el contenido
     return json.data !== undefined ? json.data : json;
 }
 
@@ -140,11 +139,11 @@ async function guardarReporteCompleto(){
     const u={fecha:document.getElementById("fFecha").value,cliente:a,area:document.getElementById("fArea").value,tipoEquipo:i.tipo,numeroEquipo:n,marca:i.marca||"",serial:i.serial||"",horometro:document.getElementById("fHorometro").value,tipoMantenimiento:document.getElementById("fTipoMantenimiento").value,solicitante:document.getElementById("fSolicitante").value,tiempoParada:document.getElementById("fTiempoParada").value,fechaInicioServicio:document.getElementById("fFechaInicio").value,fechaFinServicio:document.getElementById("fFechaFin").value,responsablePrincipal:document.getElementById("fResponsable").value,mecanicoPrincipal:document.getElementById("fMecanico").value,checklistR:r,checklistE:c,checklistP:s,itemsAdicionales:l,observaciones:(document.getElementById("obsCliente")||{}).value||"",notasInternas:(document.getElementById("notasInternas")||{}).value||"",nota:"",notaCierre:(document.getElementById("notaCierre")||{}).value||"",motivoIngreso:(document.getElementById("infoMotivo")||{}).value||"",diagnostico:(document.getElementById("infoDiagnostico")||{}).value||"",actividadesTexto:(document.getElementById("infoActividades")||{}).value||"",repuestosUsados:(document.getElementById("infoRepuestos")||{}).value||"",recomendaciones:(document.getElementById("infoRecomendaciones")||{}).value||"",estado:e,estadoReporte:o?"Cerrado":"Pendiente Validación",rolUsuario:(obtenerSesion()||{}).usuario?obtenerSesion().usuario.rol:"tecnico",nombreFirmante:t.trim(),fotoAntes:CACHE_FOTOS.antes,fotoDespues:CACHE_FOTOS.despues,fotosAdicionales:CACHE_FOTOS.adicionales,firmaImagen:obtenerFirmaBase64_(),costos:d,repuestosDetalle:COSTOS_ESTADO.repuestos||[],otrosDetalle:COSTOS_ESTADO.otros||[],aplicarRecargo:COSTOS_ESTADO.aplicarRecargo,recargoPorcentaje:COSTOS_ESTADO.recargoPorcentaje,cerrarReporte:estadoCierraReporte_(e)};
     const m=document.getElementById("enviandoOverlay");
     m.classList.add("activo"),document.getElementById("enviandoTitulo").textContent="Guardando reporte...",document.getElementById("enviandoMensaje").textContent="Generando PDFs y enviando correos. Esto puede tardar 30-60 segundos...";
+        // Al final de la función guardarReporteCompleto, reemplaza el fetch por:
     try {
         const res = await apiFetch(API_URL + '?accion=guardarReporteDesdeApp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(u)
+            body: JSON.stringify({ datos: u })  // ← Enviamos los datos envueltos en "datos"
         });
         m.classList.remove("activo");
         if(res && res.exito) {
@@ -157,7 +156,7 @@ async function guardarReporteCompleto(){
         miError("Error de conexión", err.message);
     }
 }
-
+    
 function actualizarAvisoEstado(){const e=document.getElementById("estadoFinal"),t=document.getElementById("avisoEstado");if(!e||!t)return;const o=e.value;if(!o)return void(t.style.display="none");const a={"Equipo entregado":{color:"#6AAA1E",bg:"#e6f3d5",icono:"✅",texto:"<b>Reporte se cerrará.</b> El equipo vuelve operativo al cliente.<br>Se enviará correo al cliente y a los socios."},"Fuera de servicio":{color:"#C0392B",bg:"#fdf3f2",icono:"⚠️",texto:"<b>Reporte se cerrará con nota.</b> El equipo se devuelve al cliente declarado como NO operativo.<br>El PDF llevará leyenda destacada y se enviará correo a ambos."},"Equipo en reparación":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> El equipo sigue en taller para reparación.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando el equipo regrese."},"Taller externo":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> El equipo está en taller externo.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando vuelva."},"Pendiente de repuesto":{color:"#8a6200",bg:"#fff8e6",icono:"⏸️",texto:"<b>Reporte quedará ABIERTO.</b> En espera de llegada del repuesto.<br>Solo se enviará correo a los socios. Se continúa el mismo reporte cuando llegue el repuesto."}}[o];a?(t.style.display="block",t.style.background=a.bg,t.style.border="1px solid "+a.color,t.style.color=a.color,t.style.borderRadius="8px",t.style.padding="12px 14px",t.style.fontSize="12px",t.style.lineHeight="1.5",t.innerHTML='<div style="font-size:20px;margin-bottom:6px;">'+a.icono+"</div>"+a.texto):t.style.display="none"}
 function estadoCierraReporte_(e){return"Equipo entregado"===e||"Fuera de servicio"===e}
 function miAlert(e,t){return t=t||{},new Promise(function(o){abrirModal_({icono:t.icono||"ℹ️",titulo:t.titulo||"Aviso",mensaje:e,botones:[{texto:t.textoBoton||"Aceptar",clase:"primario",accion:function(){o(!0)}}]})})}
