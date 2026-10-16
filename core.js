@@ -301,3 +301,208 @@ async function toggleCliente(e,t){
 function escaparHTML_(e){
     return String(e||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")
 }
+
+/* =====================================================================
+ * PARCHE core.js — pegar AL FINAL del archivo (después de escaparHTML_)
+ * REEMPLAZA la versión anterior del parche.
+ *
+ * Backend (WebApp.gs, doPost debe aceptar {args:[...]}):
+ *   GET  contarPendientesValidacion            -> número
+ *   GET  listarPendientesValidacion            -> [{codigo,fecha,cliente,tipoEquipo,numeroEquipo,tipoMantenimiento,tecnico,fechaEnvio}]
+ *   GET  listarReportesDeTecnico&tecnico=
+ *   GET  obtenerReportePorCodigo&codigo=
+ *   POST aprobarYEnviar   {args:[codigo, datosCostos|null]} -> {exito,error,pdfTecnico,pdfFinanciero,linkWA}
+ *   POST rechazarReporte  {args:[codigo, motivo]}           -> {exito,error,linkWA}
+ * ===================================================================== */
+
+// ---------- Utilidades ----------
+function campo_(obj, claves) {
+  obj = obj || {};
+  for (let i = 0; i < claves.length; i++) {
+    if (obj[claves[i]] !== undefined && obj[claves[i]] !== null && obj[claves[i]] !== '') return obj[claves[i]];
+  }
+  return '';
+}
+
+function asegurarVista_(nombre) {
+  let v = document.getElementById('vista-' + nombre);
+  if (!v) {
+    v = document.createElement('section');
+    v.id = 'vista-' + nombre;
+    v.className = 'vista';
+    document.getElementById('mainContainer').appendChild(v);
+  }
+  v.classList.add('activa');
+  return v;
+}
+
+function renderizarListaReportes_(lista, accionClick) {
+  if (!Array.isArray(lista) || !lista.length) return '<div class="alerta">No hay reportes para mostrar.</div>';
+  return lista.map(function (r) {
+    const codigo = campo_(r, ['codigo', 'Código']);
+    const equipo = [campo_(r, ['numeroEquipo', 'Número Equipo']), campo_(r, ['tipoEquipo', 'Tipo Equipo'])]
+      .filter(Boolean).join(' — ');
+    const tecnico = campo_(r, ['tecnico', 'Mecánico Principal']);
+    const click = accionClick ? ' onclick="' + accionClick + '(\'' + escaparAttr_(codigo) + '\')"' : '';
+    return '<div class="tarea"' + click + '>' +
+      '<span class="badge">' + escaparHTML_(campo_(r, ['estado', 'Estado Reporte']) || 'Pendiente') + '</span>' +
+      '<div class="eq">' + escaparHTML_(codigo) + (equipo ? ' — ' + escaparHTML_(equipo) : '') + '</div>' +
+      '<div class="cliente">' + escaparHTML_(campo_(r, ['cliente', 'Cliente']) || '—') +
+      ' · ' + escaparHTML_(campo_(r, ['fecha', 'Fecha'])) +
+      (tecnico ? ' · ' + escaparHTML_(tecnico) : '') + '</div></div>';
+  }).join('');
+}
+
+// ---------- Badge de pendientes (admin) ----------
+async function actualizarBadgePendientes_() {
+  try {
+    const n = Number(await apiFetch(API_URL + '?accion=contarPendientesValidacion')) || 0;
+    let badge = document.getElementById('badgePendientes');
+    if (!badge) {
+      const item = document.getElementById('menuAdminPendientes');
+      if (!item) return;
+      badge = document.createElement('span');
+      badge.id = 'badgePendientes';
+      badge.className = 'badge rojo';
+      item.appendChild(badge);
+    }
+    badge.textContent = n;
+    badge.style.display = n > 0 ? 'inline-block' : 'none';
+  } catch (err) {
+    console.warn('Error actualizando badge:', err); // nunca debe romper el login
+  }
+}
+
+// ---------- Vista: Pendientes de validación (admin) ----------
+async function cargarPendientes_() {
+  const v = asegurarVista_('pendientes');
+  const titulo = '<h2>⏳ Pendientes de validación</h2>';
+  v.innerHTML = titulo + '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const lista = await apiFetch(API_URL + '?accion=listarPendientesValidacion');
+    v.innerHTML = titulo + renderizarListaReportes_(lista, 'revisarReporte');
+  } catch (err) {
+    v.innerHTML = titulo + '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>';
+  }
+}
+
+// ---------- Vista: Mis reportes (técnico) ----------
+async function cargarMisReportes_() {
+  const v = asegurarVista_('mis-reportes');
+  const titulo = '<h2>📄 Mis reportes</h2>';
+  const ses = (obtenerSesion() || {}).usuario || {};
+  v.innerHTML = titulo + '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const lista = await apiFetch(API_URL + '?accion=listarReportesDeTecnico&tecnico=' + encodeURIComponent(ses.nombre || ''));
+    v.innerHTML = titulo + renderizarListaReportes_(lista, null);
+  } catch (err) {
+    v.innerHTML = titulo + '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>';
+  }
+}
+
+// ---------- Revisión: detalle + costos opcionales + Aprobar / Rechazar ----------
+async function revisarReporte(codigo) {
+  let r;
+  try {
+    r = await apiFetch(API_URL + '?accion=obtenerReportePorCodigo&codigo=' + encodeURIComponent(codigo));
+  } catch (err) {
+    return miError('Error', err.message);
+  }
+  r = r || {};
+  const pdf = campo_(r, ['pdfTecnico', 'URL PDF Técnico', 'urlPdfTecnico']);
+  const estilo = 'width:100%;padding:8px;margin:4px 0 8px;box-sizing:border-box;';
+  const detalle =
+    '<b>' + escaparHTML_(codigo) + '</b><br>' +
+    'Cliente: ' + escaparHTML_(campo_(r, ['cliente', 'Cliente']) || '—') + '<br>' +
+    'Equipo: ' + escaparHTML_(campo_(r, ['numeroEquipo', 'Número Equipo']) || '—') + '<br>' +
+    'Estado final: ' + escaparHTML_(campo_(r, ['estado', 'Estado', 'Estado Final']) || '—') + '<br>' +
+    (pdf ? '<a href="' + escaparHTML_(pdf) + '" target="_blank">📄 Ver informe técnico</a><br>' : '') +
+    '<hr style="margin:12px 0;border:none;border-top:1px solid #ddd">' +
+    '<b>💰 Costos</b> <small>(sin horas y tasa, el informe financiero saldrá en blanco)</small><br>' +
+    '<label>Nivel de mano de obra</label>' +
+    '<select id="rvNivel" style="' + estilo + '"><option value="A">A</option><option value="B" selected>B</option><option value="C">C</option></select>' +
+    '<label>Horas trabajadas</label>' +
+    '<input type="number" id="rvHoras" step="0.25" min="0" placeholder="Ej. 3.5" style="' + estilo + '">' +
+    '<label>Tasa BCV (Bs/USD)</label>' +
+    '<input type="number" id="rvTasa" step="0.0001" min="0" placeholder="36.5432" style="' + estilo + '">' +
+    '<label><input type="checkbox" id="rvRecargo"> Recargo por emergencia</label> ' +
+    '<input type="number" id="rvRecPct" value="30" min="0" max="100" style="width:70px;padding:6px;"> %';
+
+  abrirModal_({
+    icono: '🔍', titulo: 'Revisar reporte', mensaje: detalle,
+    botones: [
+      { texto: 'Cerrar', clase: 'gris' },
+      { texto: 'Rechazar', clase: 'rojo', accion: function () { rechazarReporteUI_(codigo); } },
+      { texto: 'Aprobar y enviar', clase: 'verde', accion: function () { aprobarReporteUI_(codigo); } }
+    ]
+  });
+}
+
+// Lee el formulario de costos: null = sin costos, false = datos incompletos
+function leerCostosRevision_() {
+  const horas = parseFloat((document.getElementById('rvHoras') || {}).value) || 0;
+  const tasa = parseFloat((document.getElementById('rvTasa') || {}).value) || 0;
+  if (!horas && !tasa) return null;
+  if (!(horas > 0) || !(tasa > 0)) return false;
+  return {
+    nivel: document.getElementById('rvNivel').value,
+    horas: horas,
+    repuestos: [],   // Fase 2: buscador de repuestos
+    otros: [],
+    aplicarRecargo: document.getElementById('rvRecargo').checked,
+    recargoPorcentaje: parseFloat(document.getElementById('rvRecPct').value) || 0,
+    tasaBCV: tasa
+  };
+}
+
+async function aprobarReporteUI_(codigo) {
+  const costos = leerCostosRevision_();
+  if (costos === false) {
+    await miAlert('Si cargas costos, indica horas y tasa BCV (ambas mayores a 0).', { icono: '⚠️', titulo: 'Costos incompletos' });
+    return revisarReporte(codigo);
+  }
+  const ov = document.getElementById('enviandoOverlay');
+  if (ov) {
+    ov.classList.add('activo');
+    document.getElementById('enviandoTitulo').textContent = 'Aprobando reporte...';
+    document.getElementById('enviandoMensaje').textContent = 'Generando PDFs y enviando correos. Puede tardar 30-60 segundos...';
+  }
+  try {
+    const res = await apiFetch(API_URL + '?accion=aprobarYEnviar', {
+      method: 'POST',
+      body: JSON.stringify({ args: [codigo, costos] })
+    });
+    if (ov) ov.classList.remove('activo');
+    // El backend devuelve {exito:false,error} en vez de lanzar excepción
+    if (!res || res.exito === false) throw new Error((res && res.error) || 'No se pudo aprobar');
+
+    let msg = 'Código: ' + escaparHTML_(codigo);
+    if (!res.pdfTecnico) msg += '<br>⚠️ El PDF técnico no se generó; revisa el registro de ejecución.';
+    if (res.linkWA) msg += '<br><a href="' + escaparHTML_(res.linkWA) + '" target="_blank">📲 Enviar por WhatsApp</a>';
+    await miExito('Reporte aprobado', msg);
+    cargarPendientes_();
+    actualizarBadgePendientes_();
+  } catch (err) {
+    if (ov) ov.classList.remove('activo');
+    miError('Error al aprobar', err.message);
+  }
+}
+
+async function rechazarReporteUI_(codigo) {
+  const motivo = (window.prompt('Motivo del rechazo:') || '').trim();
+  if (!motivo) return miAlert('Debes indicar el motivo del rechazo.', { icono: '⚠️', titulo: 'Motivo requerido' });
+  try {
+    const res = await apiFetch(API_URL + '?accion=rechazarReporte', {
+      method: 'POST',
+      body: JSON.stringify({ args: [codigo, motivo] })
+    });
+    if (!res || res.exito === false) throw new Error((res && res.error) || 'No se pudo rechazar');
+    let msg = 'Se devolvió al técnico.';
+    if (res.linkWA) msg += '<br><a href="' + escaparHTML_(res.linkWA) + '" target="_blank">📲 Avisar al técnico por WhatsApp</a>';
+    await miExito('Reporte rechazado', msg);
+    cargarPendientes_();
+    actualizarBadgePendientes_();
+  } catch (err) {
+    miError('Error al rechazar', err.message);
+  }
+}
