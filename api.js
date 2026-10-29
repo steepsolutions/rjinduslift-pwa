@@ -11,7 +11,7 @@
           fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Importante para evitar CORS
-            body: JSON.stringify({ fn: name, args })
+            body: JSON.stringify({ funcion: name, args })
           })
             .then(r => r.json())
             .then(r => {
