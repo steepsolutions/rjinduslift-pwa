@@ -223,7 +223,7 @@ function mostrarPantallaEnvioAlAdmin_(e){const t=document.getElementById("vista-
 function nuevoReporteDesdeExito(){const e=document.getElementById("vista-exito");e&&e.classList.remove("activa"),cancelarReporte()}
 let CATALOGO_TAB_ACTIVO="clientes",CATALOGO_DATOS=[],CATALOGO_ITEM_EDITANDO=null;
 function cambiarTabCatalogo(e){CATALOGO_TAB_ACTIVO=e,document.querySelectorAll(".catalog-tab").forEach(function(t){t.classList.toggle("activo",t.dataset.tab===e)}),document.getElementById("catalogBuscador").value="",cargarTabCatalogo_()}
-function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de equipos.</div>':"repuestos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de repuestos.</div>':"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
+function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?cargarEquipos_():"repuestos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de repuestos.</div>':"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
 
 async function cargarClientes_(){
     const e=document.getElementById("catalogoLista");
@@ -237,12 +237,13 @@ async function cargarClientes_(){
 }
 
 function renderizarClientes_(e){const t=document.getElementById("catalogoLista");0!==e.length?(t.innerHTML="",e.forEach(function(e){const o="SI"===String(e.activo).toUpperCase(),a=document.createElement("div");a.className="catalog-item"+(o?"":" inactivo"),a.innerHTML='<div class="info"><div class="nombre">'+(e.razonSocial||"—")+'<span class="badge-nivel">'+(e.nivelTarifa||"—")+"</span>"+(o?"":'<span class="badge-inactivo">INACTIVO</span>')+'</div><div class="sub">'+(e.rif||"")+" · "+(e.contacto||"Sin contacto")+'</div></div><div class="acciones"><button class="btn-icono" title="Editar" onclick="editarCliente(\''+e.codigo+'\')">✏️</button><button class="btn-icono rojo" title="'+(o?"Desactivar":"Activar")+'" onclick="toggleCliente(\''+e.codigo+"', "+!o+')">'+(o?"🚫":"✓")+"</button></div>",t.appendChild(a)})):t.innerHTML='<div class="alerta">No hay clientes registrados. Toca "+ Agregar" para crear uno.</div>'}
-function filtrarCatalogo(){const e=(document.getElementById("catalogBuscador").value||"").toLowerCase().trim();"clientes"===CATALOGO_TAB_ACTIVO&&renderizarClientes_(CATALOGO_DATOS.filter(function(t){return-1!==String(t.razonSocial||"").toLowerCase().indexOf(e)||-1!==String(t.rif||"").toLowerCase().indexOf(e)||-1!==String(t.contacto||"").toLowerCase().indexOf(e)||-1!==String(t.codigo||"").toLowerCase().indexOf(e)}))}
-function abrirFormCatalogo(){CATALOGO_ITEM_EDITANDO=null,"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
+function filtrarCatalogo(){const e=(document.getElementById("catalogBuscador").value||"").toLowerCase().trim();if("equipos"===CATALOGO_TAB_ACTIVO){filtrarEquipos_((document.getElementById("catalogBuscador")||{}).value||"");return;}"clientes"===CATALOGO_TAB_ACTIVO&&renderizarClientes_(CATALOGO_DATOS.filter(function(t){return-1!==String(t.razonSocial||"").toLowerCase().indexOf(e)||-1!==String(t.rif||"").toLowerCase().indexOf(e)||-1!==String(t.contacto||"").toLowerCase().indexOf(e)||-1!==String(t.codigo||"").toLowerCase().indexOf(e)}))}
+function abrirFormCatalogo(){CATALOGO_ITEM_EDITANDO=null,("equipos"===CATALOGO_TAB_ACTIVO)?(abrirFormEquipo_(),undefined):("clientes"===CATALOGO_TAB_ACTIVO)&&(CATALOGO_ITEM_EDITANDO=null),"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 function cerrarFormCatalogo(){document.getElementById("modalFormCatalogo").classList.remove("activo"),CATALOGO_ITEM_EDITANDO=null}
 function editarCliente(e){const t=CATALOGO_DATOS.find(function(t){return t.codigo===e});t&&(CATALOGO_ITEM_EDITANDO=e,document.getElementById("modalFormTitulo").textContent="✏️ Editar Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Código</label><input type="text" value="'+(t.codigo||"")+'" disabled style="background:#f4f6f2;"><label>Razón Social *</label><input type="text" id="cfRazonSocial" value="'+escaparHTML_(t.razonSocial)+'"><label>RIF</label><input type="text" id="cfRif" value="'+escaparHTML_(t.rif)+'"><label>Contacto</label><input type="text" id="cfContacto" value="'+escaparHTML_(t.contacto)+'"><label>Teléfono</label><input type="text" id="cfTelefono" value="'+escaparHTML_(t.telefono)+'"><label>Email</label><input type="email" id="cfEmail" value="'+escaparHTML_(t.email)+'"><label>Dirección</label><input type="text" id="cfDireccion" value="'+escaparHTML_(t.direccion)+'"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A"'+("A"===t.nivelTarifa?" selected":"")+'>A — $20/h</option><option value="B"'+("B"===t.nivelTarifa?" selected":"")+'>B — $28/h</option><option value="C"'+("C"===t.nivelTarifa?" selected":"")+'>C — $35/h</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" value="'+escaparHTML_(t.whatsappReportes)+'"><label>Email para reportes</label><input type="email" id="cfEmailReportes" value="'+escaparHTML_(t.emailReportes)+'"><label>Notas</label><textarea id="cfNotas">'+escaparHTML_(t.notas)+"</textarea>",document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 
 async function guardarItemCatalogo(){
+    if("equipos"===CATALOGO_TAB_ACTIVO){guardarEquipo_();return;}
     if("clientes"!==CATALOGO_TAB_ACTIVO)return void await miAlert("Esta sección estará disponible próximamente.",{icono:"⏳",titulo:"En desarrollo"});
     const e=(document.getElementById("cfRazonSocial")||{}).value||"";
     if(!e.trim())return await miAlert("La Razón Social es obligatoria.",{icono:"⚠️",titulo:"Campo requerido"}),void document.getElementById("cfRazonSocial").focus();
@@ -504,5 +505,306 @@ async function rechazarReporteUI_(codigo) {
     actualizarBadgePendientes_();
   } catch (err) {
     miError('Error al rechazar', err.message);
+  }
+}
+
+// ================================================================
+// CATÁLOGO DE EQUIPOS — CRUD completo
+// Reemplaza el placeholder en cargarTabCatalogo_ de core.js
+// Pegar AL FINAL de core.js (después de las funciones de clientes)
+// ================================================================
+
+// ── Tipos y combustibles para los selects ──
+const TIPOS_EQUIPO_LISTA = ['Montacargas', 'Traspaleta', 'Planta Eléctrica'];
+const COMBUSTIBLES_LISTA = ['GLP', 'Diésel', 'Eléctrico', 'Gasolina', 'Gas Natural'];
+
+// ── Estado del catálogo de equipos ──
+let EQUIPOS_DATOS = [];
+
+// ────────────────────────────────────────────────────────────────
+//  CARGAR EQUIPOS
+// ────────────────────────────────────────────────────────────────
+async function cargarEquipos_() {
+  const el = document.getElementById('catalogoLista');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando equipos...</div>';
+  try {
+    const data = await apiFetch(API_URL + '?accion=listarEquipos');
+    EQUIPOS_DATOS = data || [];
+    renderizarEquipos_(EQUIPOS_DATOS);
+  } catch (err) {
+    el.innerHTML = '<div class="alerta rojo">Error: ' + err.message + '</div>';
+  }
+}
+
+function renderizarEquipos_(lista) {
+  const el = document.getElementById('catalogoLista');
+  if (!lista.length) {
+    el.innerHTML = '<div class="alerta">No hay equipos registrados. Toca "+ Agregar" para crear uno.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  lista.forEach(function (eq) {
+    const activo = String(eq.activo || eq['Activo'] || 'SI').toUpperCase() === 'SI';
+    const item = document.createElement('div');
+    item.className = 'catalog-item' + (activo ? '' : ' inactivo');
+    item.innerHTML =
+      '<div class="info">' +
+        '<div class="nombre">' +
+          escaparHTML_(eq.codigo || eq['Código'] || '—') +
+          ' <span class="badge-nivel">' + escaparHTML_(eq.tipo || eq['Tipo'] || '') + '</span>' +
+          (activo ? '' : '<span class="badge-inactivo">INACTIVO</span>') +
+        '</div>' +
+        '<div class="sub">' +
+          escaparHTML_(eq.cliente || eq['Cliente'] || '—') + ' · ' +
+          escaparHTML_(eq.marca || eq['Marca'] || '') +
+          (eq.modelo || eq['Modelo'] ? ' ' + escaparHTML_(eq.modelo || eq['Modelo']) : '') +
+          ' · Serial: ' + escaparHTML_(eq.serial || eq['Serial'] || '—') +
+        '</div>' +
+        '<div class="sub" style="margin-top:2px;color:var(--naranja);font-size:11px;">' +
+          '📍 ' + escaparHTML_(eq.areaUbicacion || eq['Área/Ubicación'] || '—') +
+          ' · 🕐 ' + escaparHTML_(String(eq.horometroActual || eq['Horómetro Actual'] || '—')) + ' h' +
+        '</div>' +
+      '</div>' +
+      '<div class="acciones">' +
+        '<button class="btn-icono" title="Editar" onclick="editarEquipo(\'' + escaparAttr_(eq.codigo || eq['Código']) + '\')">✏️</button>' +
+        '<button class="btn-icono rojo" title="' + (activo ? 'Desactivar' : 'Activar') + '" ' +
+          'onclick="toggleEquipo(\'' + escaparAttr_(eq.codigo || eq['Código']) + '\', ' + !activo + ')">' +
+          (activo ? '🚫' : '✓') +
+        '</button>' +
+      '</div>';
+    el.appendChild(item);
+  });
+}
+
+// ── Filtro búsqueda ──
+function filtrarEquipos_(termino) {
+  const t = termino.toLowerCase().trim();
+  renderizarEquipos_(EQUIPOS_DATOS.filter(function (eq) {
+    return (
+      String(eq.codigo   || eq['Código']         || '').toLowerCase().includes(t) ||
+      String(eq.cliente  || eq['Cliente']         || '').toLowerCase().includes(t) ||
+      String(eq.tipo     || eq['Tipo']            || '').toLowerCase().includes(t) ||
+      String(eq.marca    || eq['Marca']           || '').toLowerCase().includes(t) ||
+      String(eq.serial   || eq['Serial']          || '').toLowerCase().includes(t) ||
+      String(eq.areaUbicacion || eq['Área/Ubicación'] || '').toLowerCase().includes(t)
+    );
+  }));
+}
+
+// ────────────────────────────────────────────────────────────────
+//  FORMULARIO NUEVO EQUIPO
+// ────────────────────────────────────────────────────────────────
+function abrirFormEquipo_() {
+  CATALOGO_ITEM_EDITANDO = null;
+  document.getElementById('modalFormTitulo').textContent = '🔧 Nuevo Equipo';
+  document.getElementById('modalFormContenido').innerHTML = htmlFormEquipo_({});
+  document.getElementById('modalFormCatalogo').classList.add('activo');
+  poblarClientesEnForm_();
+  setTimeout(function () {
+    const el = document.getElementById('eqCliente');
+    if (el) el.focus();
+  }, 100);
+}
+
+function editarEquipo(codigo) {
+  const eq = EQUIPOS_DATOS.find(function (e) {
+    return (e.codigo || e['Código']) === codigo;
+  });
+  if (!eq) return miAlert('Equipo no encontrado.', { icono: '❌' });
+  CATALOGO_ITEM_EDITANDO = codigo;
+  document.getElementById('modalFormTitulo').textContent = '✏️ Editar Equipo — ' + codigo;
+  document.getElementById('modalFormContenido').innerHTML = htmlFormEquipo_(eq);
+  document.getElementById('modalFormCatalogo').classList.add('activo');
+  poblarClientesEnForm_(eq.cliente || eq['Cliente']);
+}
+
+function htmlFormEquipo_(eq) {
+  const v = function (campos) {
+    for (let i = 0; i < campos.length; i++) {
+      const val = eq[campos[i]];
+      if (val !== undefined && val !== null && val !== '') return escaparHTML_(String(val));
+    }
+    return '';
+  };
+  const tiposOpts = TIPOS_EQUIPO_LISTA.map(function (t) {
+    return '<option value="' + t + '"' + (v(['tipo','Tipo']) === t ? ' selected' : '') + '>' + t + '</option>';
+  }).join('');
+  const combOpts = COMBUSTIBLES_LISTA.map(function (c) {
+    return '<option value="' + c + '"' + (v(['combustible','Combustible']) === c ? ' selected' : '') + '>' + c + '</option>';
+  }).join('');
+
+  return '' +
+    '<label>Cliente *</label>' +
+    '<select id="eqCliente" required onchange="generarCodigoEquipo_()"><option value="">Cargando clientes...</option></select>' +
+
+    '<label>Tipo de equipo *</label>' +
+    '<select id="eqTipo" required onchange="generarCodigoEquipo_()">' +
+    '<option value="">— Selecciona —</option>' + tiposOpts + '</select>' +
+
+    '<label>Código *</label>' +
+    '<div style="display:flex;gap:8px;align-items:center;">' +
+    '<input type="text" id="eqCodigo" value="' + v(['codigo','Código']) + '" placeholder="Ej. M-07" required ' +
+    (CATALOGO_ITEM_EDITANDO ? 'style="background:#f4f6f2;" readonly' : '') + '>' +
+    (CATALOGO_ITEM_EDITANDO ? '' : '<button type="button" onclick="generarCodigoEquipo_()" style="white-space:nowrap;padding:9px 12px;background:var(--naranja);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px;">Auto</button>') +
+    '</div>' +
+
+    '<label>Marca *</label>' +
+    '<input type="text" id="eqMarca" value="' + v(['marca','Marca']) + '" placeholder="Ej. Toyota" required>' +
+
+    '<label>Modelo</label>' +
+    '<input type="text" id="eqModelo" value="' + v(['modelo','Modelo']) + '" placeholder="Ej. 8FGCU25">' +
+
+    '<label>Serial *</label>' +
+    '<input type="text" id="eqSerial" value="' + v(['serial','Serial']) + '" placeholder="Ej. 8FGCU25-12345" required>' +
+
+    '<label>Año</label>' +
+    '<input type="number" id="eqAnio" value="' + v(['anio','Año']) + '" placeholder="Ej. 2020" min="1990" max="2030">' +
+
+    '<label>Combustible</label>' +
+    '<select id="eqCombustible"><option value="">— Selecciona —</option>' + combOpts + '</select>' +
+
+    '<label>Capacidad</label>' +
+    '<input type="text" id="eqCapacidad" value="' + v(['capacidad','Capacidad']) + '" placeholder="Ej. 2.5 ton / 500 kVA">' +
+
+    '<label>Área / Ubicación</label>' +
+    '<input type="text" id="eqArea" value="' + v(['areaUbicacion','Área/Ubicación']) + '" placeholder="Ej. Galpón Despacho 02">' +
+
+    '<label>Horómetro actual (h)</label>' +
+    '<input type="number" id="eqHorometro" value="' + v(['horometroActual','Horómetro Actual']) + '" placeholder="Ej. 1847" min="0">' +
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+    '<div><label>Intervalo horas</label>' +
+    '<input type="number" id="eqIntHoras" value="' + v(['intervaloHoras','Intervalo Horas']) + '" placeholder="Ej. 250" min="0"></div>' +
+    '<div><label>Intervalo días</label>' +
+    '<input type="number" id="eqIntDias" value="' + v(['intervaloDias','Intervalo Días']) + '" placeholder="Ej. 90" min="0"></div>' +
+    '</div>' +
+
+    '<label>Notas</label>' +
+    '<textarea id="eqNotas" placeholder="Observaciones internas del equipo">' + v(['notas','Notas']) + '</textarea>';
+}
+
+// Poblar select de clientes en el form de equipos
+async function poblarClientesEnForm_(clienteSeleccionado) {
+  const sel = document.getElementById('eqCliente');
+  if (!sel) return;
+  try {
+    const clientes = await apiFetch(API_URL + '?accion=obtenerClientes');
+    sel.innerHTML = '<option value="">— Selecciona cliente —</option>';
+    (clientes || []).forEach(function (c) {
+      const opt = document.createElement('option');
+      opt.value = c.razonSocial;
+      opt.textContent = c.razonSocial;
+      if (clienteSeleccionado && c.razonSocial === clienteSeleccionado) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  } catch (e) {
+    sel.innerHTML = '<option value="">Error cargando clientes</option>';
+  }
+}
+
+// Auto-generar código según tipo y cliente
+function generarCodigoEquipo_() {
+  if (CATALOGO_ITEM_EDITANDO) return; // no tocar si es edición
+  const tipo = (document.getElementById('eqTipo') || {}).value || '';
+  const prefijos = { 'Montacargas': 'M', 'Traspaleta': 'T', 'Planta Eléctrica': 'PE' };
+  const prefijo = prefijos[tipo];
+  if (!prefijo) return;
+  // Contar equipos del mismo prefijo
+  const existentes = EQUIPOS_DATOS.filter(function (e) {
+    return String(e.codigo || e['Código'] || '').startsWith(prefijo + '-');
+  });
+  const siguiente = String(existentes.length + 1).padStart(2, '0');
+  const codEl = document.getElementById('eqCodigo');
+  if (codEl && !codEl.value) codEl.value = prefijo + '-' + siguiente;
+}
+
+// ────────────────────────────────────────────────────────────────
+//  GUARDAR EQUIPO (nuevo o edición)
+// ────────────────────────────────────────────────────────────────
+async function guardarEquipo_() {
+  const cliente  = (document.getElementById('eqCliente')    || {}).value || '';
+  const tipo     = (document.getElementById('eqTipo')       || {}).value || '';
+  const codigo   = (document.getElementById('eqCodigo')     || {}).value || '';
+  const marca    = (document.getElementById('eqMarca')      || {}).value || '';
+  const serial   = (document.getElementById('eqSerial')     || {}).value || '';
+
+  if (!cliente) return miAlert('Selecciona el cliente.',          { icono: '⚠️', titulo: 'Campo requerido' });
+  if (!tipo)    return miAlert('Selecciona el tipo de equipo.',   { icono: '⚠️', titulo: 'Campo requerido' });
+  if (!codigo.trim()) return miAlert('El código es obligatorio.', { icono: '⚠️', titulo: 'Campo requerido' });
+  if (!marca.trim())  return miAlert('La marca es obligatoria.',  { icono: '⚠️', titulo: 'Campo requerido' });
+  if (!serial.trim()) return miAlert('El serial es obligatorio.', { icono: '⚠️', titulo: 'Campo requerido' });
+
+  const datos = {
+    'Código':            codigo.trim(),
+    'Cliente':           cliente,
+    'Tipo':              tipo,
+    'Marca':             marca.trim(),
+    'Modelo':            (document.getElementById('eqModelo')      || {}).value || '',
+    'Serial':            serial.trim(),
+    'Año':               (document.getElementById('eqAnio')        || {}).value || '',
+    'Combustible':       (document.getElementById('eqCombustible') || {}).value || '',
+    'Capacidad':         (document.getElementById('eqCapacidad')   || {}).value || '',
+    'Área/Ubicación':    (document.getElementById('eqArea')        || {}).value || '',
+    'Horómetro Actual':  (document.getElementById('eqHorometro')   || {}).value || '',
+    'Intervalo Horas':   (document.getElementById('eqIntHoras')    || {}).value || '',
+    'Intervalo Días':    (document.getElementById('eqIntDias')     || {}).value || '',
+    'Activo':            'SI',
+    'Notas':             (document.getElementById('eqNotas')       || {}).value || '',
+  };
+
+  const btn = document.getElementById('modalFormGuardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const accion  = CATALOGO_ITEM_EDITANDO ? 'actualizarEquipo' : 'agregarEquipo';
+  const payload = CATALOGO_ITEM_EDITANDO
+    ? { codigo: CATALOGO_ITEM_EDITANDO, datos: datos }
+    : datos;
+
+  try {
+    const res = await apiFetch(API_URL + '?accion=' + accion, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    cerrarFormCatalogo();
+    if (res && res.exito) {
+      await miExito(
+        CATALOGO_ITEM_EDITANDO ? 'Equipo actualizado' : 'Equipo registrado',
+        'Código: ' + datos['Código']
+      );
+      cargarEquipos_();
+    } else {
+      miError('Error al guardar', (res && res.error) || 'Error desconocido');
+    }
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    miError('Error de conexión', err.message);
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
+//  TOGGLE ACTIVO / INACTIVO
+// ────────────────────────────────────────────────────────────────
+async function toggleEquipo(codigo, activar) {
+  const confirmado = await miConfirm(
+    '¿Seguro que quieres ' + (activar ? 'activar' : 'desactivar') + ' el equipo ' + codigo + '?',
+    { icono: '❓', titulo: 'Confirmar', textoSi: activar ? 'Activar' : 'Desactivar' }
+  );
+  if (!confirmado) return;
+  try {
+    const res = await apiFetch(API_URL + '?accion=actualizarEquipo', {
+      method: 'POST',
+      body: JSON.stringify({ codigo: codigo, datos: { 'Activo': activar ? 'SI' : 'NO' } })
+    });
+    if (res && res.exito) {
+      cargarEquipos_();
+    } else {
+      miError('Error', (res && res.error) || 'Error desconocido');
+    }
+  } catch (err) {
+    miError('Error', err.message);
   }
 }
