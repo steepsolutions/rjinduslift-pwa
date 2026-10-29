@@ -768,13 +768,14 @@ async function guardarEquipo_() {
     });
     btn.disabled = false;
     btn.textContent = 'Guardar';
-    cerrarFormCatalogo();
-    if (res && res.exito) {
-      await miExito(
-        CATALOGO_ITEM_EDITANDO ? 'Equipo actualizado' : 'Equipo registrado',
-        'Código: ' + datos['Código']
-      );
-      cargarEquipos_();
+    const codigoGuardado = datos['Código'] || (res && res.codigo) || '';
+cerrarFormCatalogo();
+if (res && res.exito) {
+  await miExito(
+    CATALOGO_ITEM_EDITANDO ? 'Equipo actualizado' : 'Equipo registrado',
+    'Código: ' + codigoGuardado
+  );
+  cargarEquipos_();
     } else {
       miError('Error al guardar', (res && res.error) || 'Error desconocido');
     }
