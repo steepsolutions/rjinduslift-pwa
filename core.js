@@ -253,7 +253,7 @@ async function guardarItemCatalogo(){
     const o=document.getElementById("modalFormGuardar");
     o.disabled=!0,o.textContent="Guardando...";
     const accion = CATALOGO_ITEM_EDITANDO ? 'actualizarCliente' : 'agregarCliente';
-    const payload = CATALOGO_ITEM_EDITANDO ? { codigo: CATALOGO_ITEM_EDITANDO, datos: t } : t;
+    const payload = { args: CATALOGO_ITEM_EDITANDO ? [CATALOGO_ITEM_EDITANDO, t] : [t] };
     try {
         const res = await apiFetch(API_URL + '?accion=' + accion, {
             method: 'POST',
@@ -263,8 +263,8 @@ async function guardarItemCatalogo(){
         o.disabled=!1;
         o.textContent="Guardar";
         cerrarFormCatalogo();
-        if(res.exito) {
-            miExito("Cliente guardado", "Código: " + (res.codigo || 'N/A'));
+        if(res) {
+            miExito("Cliente guardado", "Código: " + (typeof res === "string" ? res : ((res && res["Código"]) || "—")));
             cargarTabCatalogo_();
         } else {
             miError("Error al guardar", res.error || "Error desconocido");
@@ -287,9 +287,9 @@ async function toggleCliente(e,t){
                 const res = await apiFetch(API_URL + '?accion=actualizarCliente', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ codigo: e, datos: { Activo: t ? "SI" : "NO" } })
+                    body: JSON.stringify({ args: [e, { Activo: t ? "SI" : "NO" }] })
                 });
-                if(res.exito) {
+                if(res) {
                     cargarTabCatalogo_();
                 } else {
                     miError("Error", res.error || "Error desconocido");
