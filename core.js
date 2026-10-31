@@ -223,7 +223,7 @@ function mostrarPantallaEnvioAlAdmin_(e){const t=document.getElementById("vista-
 function nuevoReporteDesdeExito(){const e=document.getElementById("vista-exito");e&&e.classList.remove("activa"),cancelarReporte()}
 let CATALOGO_TAB_ACTIVO="clientes",CATALOGO_DATOS=[],CATALOGO_ITEM_EDITANDO=null;
 function cambiarTabCatalogo(e){CATALOGO_TAB_ACTIVO=e,document.querySelectorAll(".catalog-tab").forEach(function(t){t.classList.toggle("activo",t.dataset.tab===e)}),document.getElementById("catalogBuscador").value="",cargarTabCatalogo_()}
-function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?cargarEquipos_():"repuestos"===CATALOGO_TAB_ACTIVO?cargarRepuestos_():"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
+function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?cargarEquipos_():"repuestos"===CATALOGO_TAB_ACTIVO?cargarRepuestos_():"tarifas"===CATALOGO_TAB_ACTIVO&&cargarTarifas_()}
 
 async function cargarClientes_(){
     const e=document.getElementById("catalogoLista");
@@ -238,13 +238,14 @@ async function cargarClientes_(){
 
 function renderizarClientes_(e){const t=document.getElementById("catalogoLista");0!==e.length?(t.innerHTML="",e.forEach(function(e){const o="SI"===String(e.activo).toUpperCase(),a=document.createElement("div");a.className="catalog-item"+(o?"":" inactivo"),a.innerHTML='<div class="info"><div class="nombre">'+(e.razonSocial||"—")+'<span class="badge-nivel">'+(e.nivelTarifa||"—")+"</span>"+(o?"":'<span class="badge-inactivo">INACTIVO</span>')+'</div><div class="sub">'+(e.rif||"")+" · "+(e.contacto||"Sin contacto")+'</div></div><div class="acciones"><button class="btn-icono" title="Editar" onclick="editarCliente(\''+e.codigo+'\')">✏️</button><button class="btn-icono rojo" title="'+(o?"Desactivar":"Activar")+'" onclick="toggleCliente(\''+e.codigo+"', "+!o+')">'+(o?"🚫":"✓")+"</button></div>",t.appendChild(a)})):t.innerHTML='<div class="alerta">No hay clientes registrados. Toca "+ Agregar" para crear uno.</div>'}
 function filtrarCatalogo(){if("repuestos"===CATALOGO_TAB_ACTIVO){filtrarRepuestos_(document.getElementById("catalogBuscador").value||"");return;}const e=(document.getElementById("catalogBuscador").value||"").toLowerCase().trim();if("equipos"===CATALOGO_TAB_ACTIVO){filtrarEquipos_((document.getElementById("catalogBuscador")||{}).value||"");return;}"clientes"===CATALOGO_TAB_ACTIVO&&renderizarClientes_(CATALOGO_DATOS.filter(function(t){return-1!==String(t.razonSocial||"").toLowerCase().indexOf(e)||-1!==String(t.rif||"").toLowerCase().indexOf(e)||-1!==String(t.contacto||"").toLowerCase().indexOf(e)||-1!==String(t.codigo||"").toLowerCase().indexOf(e)}))}
-function abrirFormCatalogo(){if("repuestos"===CATALOGO_TAB_ACTIVO){abrirFormRepuesto_();return;}CATALOGO_ITEM_EDITANDO=null,("equipos"===CATALOGO_TAB_ACTIVO)?(abrirFormEquipo_(),undefined):("clientes"===CATALOGO_TAB_ACTIVO)&&(CATALOGO_ITEM_EDITANDO=null),"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
+function abrirFormCatalogo(){if("repuestos"===CATALOGO_TAB_ACTIVO){abrirFormRepuesto_();return;}if("tarifas"===CATALOGO_TAB_ACTIVO){miAlert("Los niveles A, B y C son fijos. Usa el lápiz para cambiar el precio por hora.",{icono:"ℹ️",titulo:"Tarifas"});return;}CATALOGO_ITEM_EDITANDO=null,("equipos"===CATALOGO_TAB_ACTIVO)?(abrirFormEquipo_(),undefined):("clientes"===CATALOGO_TAB_ACTIVO)&&(CATALOGO_ITEM_EDITANDO=null),"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 function cerrarFormCatalogo(){document.getElementById("modalFormCatalogo").classList.remove("activo"),CATALOGO_ITEM_EDITANDO=null}
 function editarCliente(e){const t=CATALOGO_DATOS.find(function(t){return t.codigo===e});t&&(CATALOGO_ITEM_EDITANDO=e,document.getElementById("modalFormTitulo").textContent="✏️ Editar Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Código</label><input type="text" value="'+(t.codigo||"")+'" disabled style="background:#f4f6f2;"><label>Razón Social *</label><input type="text" id="cfRazonSocial" value="'+escaparHTML_(t.razonSocial)+'"><label>RIF</label><input type="text" id="cfRif" value="'+escaparHTML_(t.rif)+'"><label>Contacto</label><input type="text" id="cfContacto" value="'+escaparHTML_(t.contacto)+'"><label>Teléfono</label><input type="text" id="cfTelefono" value="'+escaparHTML_(t.telefono)+'"><label>Email</label><input type="email" id="cfEmail" value="'+escaparHTML_(t.email)+'"><label>Dirección</label><input type="text" id="cfDireccion" value="'+escaparHTML_(t.direccion)+'"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A"'+("A"===t.nivelTarifa?" selected":"")+'>A — $20/h</option><option value="B"'+("B"===t.nivelTarifa?" selected":"")+'>B — $28/h</option><option value="C"'+("C"===t.nivelTarifa?" selected":"")+'>C — $35/h</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" value="'+escaparHTML_(t.whatsappReportes)+'"><label>Email para reportes</label><input type="email" id="cfEmailReportes" value="'+escaparHTML_(t.emailReportes)+'"><label>Notas</label><textarea id="cfNotas">'+escaparHTML_(t.notas)+"</textarea>",document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 
 async function guardarItemCatalogo(){
     if("equipos"===CATALOGO_TAB_ACTIVO){guardarEquipo_();return;}
     if("repuestos"===CATALOGO_TAB_ACTIVO){guardarRepuesto_();return;}
+    if("tarifas"===CATALOGO_TAB_ACTIVO){guardarTarifa_();return;}
     if("clientes"!==CATALOGO_TAB_ACTIVO)return void await miAlert("Esta sección estará disponible próximamente.",{icono:"⏳",titulo:"En desarrollo"});
     const e=(document.getElementById("cfRazonSocial")||{}).value||"";
     if(!e.trim())return await miAlert("La Razón Social es obligatoria.",{icono:"⚠️",titulo:"Campo requerido"}),void document.getElementById("cfRazonSocial").focus();
@@ -956,5 +957,95 @@ async function toggleRepuesto(codigo, activar) {
     cargarRepuestos_();
   } catch (err) {
     miError('Error', err.message);
+  }
+}
+
+// ================================================================
+// CATÁLOGO DE TARIFAS — edición del precio por hora (niveles A/B/C)
+// ================================================================
+let TARIFAS_DATOS = [];
+
+async function cargarTarifas_() {
+  const el = document.getElementById('catalogoLista');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando tarifas...</div>';
+  try {
+    const data = await apiFetch(API_URL + '?accion=obtenerTarifas');
+    TARIFAS_DATOS = (data || []).slice().sort(function (a, b) {
+      return String(a['Nivel']).localeCompare(String(b['Nivel']));
+    });
+    renderizarTarifas_();
+  } catch (err) {
+    el.innerHTML = '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>';
+  }
+}
+
+function renderizarTarifas_() {
+  const el = document.getElementById('catalogoLista');
+  if (!TARIFAS_DATOS.length) {
+    el.innerHTML = '<div class="alerta">No hay tarifas configuradas en la hoja.</div>';
+    return;
+  }
+  el.innerHTML = '<div class="alerta" style="margin-bottom:12px;">El nuevo precio aplica a los reportes que se aprueben desde ahora. Los ya aprobados conservan su monto.</div>';
+  TARIFAS_DATOS.forEach(function (t) {
+    const nivel = String(t['Nivel'] || '');
+    const item = document.createElement('div');
+    item.className = 'catalog-item';
+    item.innerHTML =
+      '<div class="info">' +
+        '<div class="nombre">Nivel ' + escaparHTML_(nivel) +
+          ' <span class="badge-nivel">$' + Number(t['Precio USD/Hora'] || 0).toFixed(2) + '/h</span></div>' +
+        '<div class="sub">' + escaparHTML_(t['Descripción'] || '') + '</div>' +
+      '</div>' +
+      '<div class="acciones">' +
+        '<button class="btn-icono" title="Editar precio" onclick="editarTarifa(\'' + escaparAttr_(nivel) + '\')">✏️</button>' +
+      '</div>';
+    el.appendChild(item);
+  });
+}
+
+function editarTarifa(nivel) {
+  const t = TARIFAS_DATOS.find(function (x) { return String(x['Nivel']) === String(nivel); });
+  if (!t) return miAlert('Nivel no encontrado.', { icono: '❌' });
+  CATALOGO_ITEM_EDITANDO = nivel;
+  document.getElementById('modalFormTitulo').textContent = '💰 Tarifa nivel ' + nivel;
+  document.getElementById('modalFormContenido').innerHTML =
+    '<label>Nivel</label>' +
+    '<input type="text" value="' + escaparHTML_(nivel) + '" disabled style="background:#f4f6f2;">' +
+    '<label>Descripción</label>' +
+    '<input type="text" value="' + escaparHTML_(t['Descripción'] || '') + '" disabled style="background:#f4f6f2;">' +
+    '<label>Precio USD por hora *</label>' +
+    '<input type="number" id="tarPrecio" step="0.01" min="0.01" value="' + Number(t['Precio USD/Hora'] || 0) + '">';
+  document.getElementById('modalFormCatalogo').classList.add('activo');
+  setTimeout(function () {
+    const e = document.getElementById('tarPrecio');
+    if (e) e.focus();
+  }, 100);
+}
+
+async function guardarTarifa_() {
+  const nivel = CATALOGO_ITEM_EDITANDO;
+  if (!nivel) return;
+  const precio = parseFloat(String((document.getElementById('tarPrecio') || {}).value || '').replace(',', '.'));
+  if (isNaN(precio) || precio <= 0 || precio > 1000) {
+    return miAlert('Indica un precio válido entre 0.01 y 1000 USD.', { icono: '⚠️', titulo: 'Precio inválido' });
+  }
+  const btn = document.getElementById('modalFormGuardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+  try {
+    await apiFetch(API_URL + '?accion=actualizarTarifa', {
+      method: 'POST',
+      body: JSON.stringify({ args: [nivel, precio] })
+    });
+    COSTOS_ESTADO.tarifas = {};   // fuerza a recargar los precios en la pantalla de costos
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    cerrarFormCatalogo();
+    await miExito('Tarifa actualizada', 'Nivel ' + nivel + ': $' + precio.toFixed(2) + '/h');
+    cargarTarifas_();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    miError('Error al guardar', err.message);
   }
 }
