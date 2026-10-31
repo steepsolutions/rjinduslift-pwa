@@ -32,6 +32,7 @@ function htmlDashboardOperativo_(d) {
     return '<div class="dash-kpi' + (rojo && numero > 0 ? ' rojo' : '') + '">' +
       '<div class="num">' + numero + '</div><div class="lbl">' + etiqueta + '</div></div>';
   };
+  const vacioMes = 'Aún no hay reportes aprobados este mes.';
 
   return '' +
     '<div class="dash-cabecera"><h2>📊 Dashboard operativo</h2>' +
@@ -44,14 +45,17 @@ function htmlDashboardOperativo_(d) {
       kpi(d.equipos.porVencer, 'Por vencer') +
     '</div>' +
 
-    dashSeccion_('📅 Reportes del mes por estado (' + escaparHTML_(d.mes) + ')',
-      dashBarras_(d.porEstado, 'Aún no hay reportes este mes.')) +
+    dashSeccion_('📅 Reportes del mes por situación (' + escaparHTML_(d.mes) + ')',
+      dashBarras_(d.porSituacion, 'Aún no hay reportes este mes.')) +
 
-    dashSeccion_('🔧 Servicios por técnico (mes actual)',
-      dashBarras_(d.porTecnico, 'Aún no hay reportes este mes.')) +
+    dashSeccion_('🚜 Equipos atendidos por estado (aprobados: ' + d.totalCerrados + ')',
+      dashBarras_(d.porEstado, vacioMes)) +
+
+    dashSeccion_('🔧 Servicios por técnico (aprobados)',
+      dashBarras_(d.porTecnico, vacioMes)) +
 
     dashSeccion_('⚠️ Equipos vencidos o por vencer',
-      dashListaEquipos_(d.equipos.lista)) +
+      dashListaEquipos_(d.equipos.lista, d.equipos.sinFecha)) +
 
     dashSeccion_('⏳ Reportes pendientes de aprobar',
       dashListaPendientes_(d.pendientes.lista));
@@ -73,8 +77,15 @@ function dashBarras_(items, textoVacio) {
   }).join('');
 }
 
-function dashListaEquipos_(lista) {
-  if (!lista || !lista.length) return '<div class="alerta">Todos los equipos están al día. 🎉</div>';
+function dashListaEquipos_(lista, sinFecha) {
+  const aviso = sinFecha > 0
+    ? '<div class="alerta" style="margin-top:10px;">ℹ️ ' + sinFecha + ' equipo(s) no tienen fecha de último servicio registrada y no se pueden evaluar.</div>'
+    : '';
+  if (!lista || !lista.length) {
+    return sinFecha > 0
+      ? aviso
+      : '<div class="alerta">Todos los equipos están al día. 🎉</div>';
+  }
   return lista.map(function (s) {
     const estado = ESTADO_LABEL[s.estado] || ESTADO_LABEL.pendiente;
     const desc = [s.tipo, s.marca].filter(Boolean).join(' ');
@@ -83,7 +94,7 @@ function dashListaEquipos_(lista) {
       '<div class="eq">' + escaparHTML_(s.codigo) + ' — ' + escaparHTML_(desc) + '</div>' +
       '<div class="cliente">' + escaparHTML_(s.cliente || '—') +
       (s.proximaFecha ? ' · Próximo: ' + escaparHTML_(s.proximaFecha) : '') + '</div></div>';
-  }).join('');
+  }).join('') + aviso;
 }
 
 function dashListaPendientes_(lista) {
