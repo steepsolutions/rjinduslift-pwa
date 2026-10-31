@@ -756,33 +756,25 @@ async function guardarEquipo_() {
   btn.disabled = true;
   btn.textContent = 'Guardando...';
 
-  const accion  = CATALOGO_ITEM_EDITANDO ? 'actualizarEquipo' : 'agregarEquipo';
-  const payload = CATALOGO_ITEM_EDITANDO
-    ? { codigo: CATALOGO_ITEM_EDITANDO, datos: datos }
-    : datos;
+  const esEdicion = !!CATALOGO_ITEM_EDITANDO;
+  const codigoEditado = CATALOGO_ITEM_EDITANDO;
+  const accion = esEdicion ? 'actualizarEquipo' : 'agregarEquipo';
+  const args = esEdicion ? [codigoEditado, datos] : [datos];
 
   try {
-    const res = await apiFetch(API_URL + '?accion=' + accion, {
+    await apiFetch(API_URL + '?accion=' + accion, {
       method: 'POST',
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ args: args })
     });
     btn.disabled = false;
     btn.textContent = 'Guardar';
-    const codigoGuardado = datos['Código'] || (res && res.codigo) || '';
-cerrarFormCatalogo();
-if (res && res.exito) {
-  await miExito(
-    CATALOGO_ITEM_EDITANDO ? 'Equipo actualizado' : 'Equipo registrado',
-    'Código: ' + codigoGuardado
-  );
-  cargarEquipos_();
-    } else {
-      miError('Error al guardar', (res && res.error) || 'Error desconocido');
-    }
+    cerrarFormCatalogo();
+    await miExito(esEdicion ? 'Equipo actualizado' : 'Equipo registrado', 'Código: ' + datos['Código']);
+    cargarEquipos_();
   } catch (err) {
     btn.disabled = false;
     btn.textContent = 'Guardar';
-    miError('Error de conexión', err.message);
+    miError('Error al guardar', err.message);
   }
 }
 
@@ -796,15 +788,11 @@ async function toggleEquipo(codigo, activar) {
   );
   if (!confirmado) return;
   try {
-    const res = await apiFetch(API_URL + '?accion=actualizarEquipo', {
+    await apiFetch(API_URL + '?accion=actualizarEquipo', {
       method: 'POST',
-      body: JSON.stringify({ codigo: codigo, datos: { 'Activo': activar ? 'SI' : 'NO' } })
+      body: JSON.stringify({ args: [codigo, { 'Activo': activar ? 'SI' : 'NO' }] })
     });
-    if (res && res.exito) {
-      cargarEquipos_();
-    } else {
-      miError('Error', (res && res.error) || 'Error desconocido');
-    }
+    cargarEquipos_();
   } catch (err) {
     miError('Error', err.message);
   }
