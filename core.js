@@ -223,7 +223,7 @@ function mostrarPantallaEnvioAlAdmin_(e){const t=document.getElementById("vista-
 function nuevoReporteDesdeExito(){const e=document.getElementById("vista-exito");e&&e.classList.remove("activa"),cancelarReporte()}
 let CATALOGO_TAB_ACTIVO="clientes",CATALOGO_DATOS=[],CATALOGO_ITEM_EDITANDO=null;
 function cambiarTabCatalogo(e){CATALOGO_TAB_ACTIVO=e,document.querySelectorAll(".catalog-tab").forEach(function(t){t.classList.toggle("activo",t.dataset.tab===e)}),document.getElementById("catalogBuscador").value="",cargarTabCatalogo_()}
-function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?cargarEquipos_():"repuestos"===CATALOGO_TAB_ACTIVO?e.innerHTML='<div class="alerta">Próximamente: gestión de repuestos.</div>':"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
+function cargarTabCatalogo_(){const e=document.getElementById("catalogoLista");e.innerHTML='<div class="loading"><div class="spinner"></div> Cargando...</div>',"clientes"===CATALOGO_TAB_ACTIVO?cargarClientes_():"equipos"===CATALOGO_TAB_ACTIVO?cargarEquipos_():"repuestos"===CATALOGO_TAB_ACTIVO?cargarRepuestos_():"tarifas"===CATALOGO_TAB_ACTIVO&&(e.innerHTML='<div class="alerta">Próximamente: gestión de tarifas.</div>')}
 
 async function cargarClientes_(){
     const e=document.getElementById("catalogoLista");
@@ -237,13 +237,14 @@ async function cargarClientes_(){
 }
 
 function renderizarClientes_(e){const t=document.getElementById("catalogoLista");0!==e.length?(t.innerHTML="",e.forEach(function(e){const o="SI"===String(e.activo).toUpperCase(),a=document.createElement("div");a.className="catalog-item"+(o?"":" inactivo"),a.innerHTML='<div class="info"><div class="nombre">'+(e.razonSocial||"—")+'<span class="badge-nivel">'+(e.nivelTarifa||"—")+"</span>"+(o?"":'<span class="badge-inactivo">INACTIVO</span>')+'</div><div class="sub">'+(e.rif||"")+" · "+(e.contacto||"Sin contacto")+'</div></div><div class="acciones"><button class="btn-icono" title="Editar" onclick="editarCliente(\''+e.codigo+'\')">✏️</button><button class="btn-icono rojo" title="'+(o?"Desactivar":"Activar")+'" onclick="toggleCliente(\''+e.codigo+"', "+!o+')">'+(o?"🚫":"✓")+"</button></div>",t.appendChild(a)})):t.innerHTML='<div class="alerta">No hay clientes registrados. Toca "+ Agregar" para crear uno.</div>'}
-function filtrarCatalogo(){const e=(document.getElementById("catalogBuscador").value||"").toLowerCase().trim();if("equipos"===CATALOGO_TAB_ACTIVO){filtrarEquipos_((document.getElementById("catalogBuscador")||{}).value||"");return;}"clientes"===CATALOGO_TAB_ACTIVO&&renderizarClientes_(CATALOGO_DATOS.filter(function(t){return-1!==String(t.razonSocial||"").toLowerCase().indexOf(e)||-1!==String(t.rif||"").toLowerCase().indexOf(e)||-1!==String(t.contacto||"").toLowerCase().indexOf(e)||-1!==String(t.codigo||"").toLowerCase().indexOf(e)}))}
-function abrirFormCatalogo(){CATALOGO_ITEM_EDITANDO=null,("equipos"===CATALOGO_TAB_ACTIVO)?(abrirFormEquipo_(),undefined):("clientes"===CATALOGO_TAB_ACTIVO)&&(CATALOGO_ITEM_EDITANDO=null),"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
+function filtrarCatalogo(){if("repuestos"===CATALOGO_TAB_ACTIVO){filtrarRepuestos_(document.getElementById("catalogBuscador").value||"");return;}const e=(document.getElementById("catalogBuscador").value||"").toLowerCase().trim();if("equipos"===CATALOGO_TAB_ACTIVO){filtrarEquipos_((document.getElementById("catalogBuscador")||{}).value||"");return;}"clientes"===CATALOGO_TAB_ACTIVO&&renderizarClientes_(CATALOGO_DATOS.filter(function(t){return-1!==String(t.razonSocial||"").toLowerCase().indexOf(e)||-1!==String(t.rif||"").toLowerCase().indexOf(e)||-1!==String(t.contacto||"").toLowerCase().indexOf(e)||-1!==String(t.codigo||"").toLowerCase().indexOf(e)}))}
+function abrirFormCatalogo(){if("repuestos"===CATALOGO_TAB_ACTIVO){abrirFormRepuesto_();return;}CATALOGO_ITEM_EDITANDO=null,("equipos"===CATALOGO_TAB_ACTIVO)?(abrirFormEquipo_(),undefined):("clientes"===CATALOGO_TAB_ACTIVO)&&(CATALOGO_ITEM_EDITANDO=null),"clientes"===CATALOGO_TAB_ACTIVO&&(document.getElementById("modalFormTitulo").textContent="👥 Nuevo Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Razón Social *</label><input type="text" id="cfRazonSocial" placeholder="Ej. Alimentos del Centro C.A."><label>RIF</label><input type="text" id="cfRif" placeholder="Ej. J-30123456-7"><label>Contacto</label><input type="text" id="cfContacto" placeholder="Ej. Ing. Carlos Méndez"><label>Teléfono</label><input type="text" id="cfTelefono" placeholder="Ej. +58 412-5551234"><label>Email</label><input type="email" id="cfEmail" placeholder="Ej. cmendez@empresa.com"><label>Dirección</label><input type="text" id="cfDireccion" placeholder="Ej. Santa Cruz de Aragua"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A">A — $20/h (sin exigencias especiales)</option><option value="B" selected>B — $28/h (exigencias medias)</option><option value="C">C — $35/h (altas exigencias)</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" placeholder="Ej. +584125551234"><label>Email para reportes</label><input type="email" id="cfEmailReportes" placeholder="Ej. reportes@empresa.com"><label>Notas</label><textarea id="cfNotas" placeholder="Observaciones internas"></textarea>',document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 function cerrarFormCatalogo(){document.getElementById("modalFormCatalogo").classList.remove("activo"),CATALOGO_ITEM_EDITANDO=null}
 function editarCliente(e){const t=CATALOGO_DATOS.find(function(t){return t.codigo===e});t&&(CATALOGO_ITEM_EDITANDO=e,document.getElementById("modalFormTitulo").textContent="✏️ Editar Cliente",document.getElementById("modalFormContenido").innerHTML='<label>Código</label><input type="text" value="'+(t.codigo||"")+'" disabled style="background:#f4f6f2;"><label>Razón Social *</label><input type="text" id="cfRazonSocial" value="'+escaparHTML_(t.razonSocial)+'"><label>RIF</label><input type="text" id="cfRif" value="'+escaparHTML_(t.rif)+'"><label>Contacto</label><input type="text" id="cfContacto" value="'+escaparHTML_(t.contacto)+'"><label>Teléfono</label><input type="text" id="cfTelefono" value="'+escaparHTML_(t.telefono)+'"><label>Email</label><input type="email" id="cfEmail" value="'+escaparHTML_(t.email)+'"><label>Dirección</label><input type="text" id="cfDireccion" value="'+escaparHTML_(t.direccion)+'"><label>Nivel de Tarifa *</label><select id="cfNivelTarifa"><option value="A"'+("A"===t.nivelTarifa?" selected":"")+'>A — $20/h</option><option value="B"'+("B"===t.nivelTarifa?" selected":"")+'>B — $28/h</option><option value="C"'+("C"===t.nivelTarifa?" selected":"")+'>C — $35/h</option></select><label>WhatsApp para reportes</label><input type="text" id="cfWhatsApp" value="'+escaparHTML_(t.whatsappReportes)+'"><label>Email para reportes</label><input type="email" id="cfEmailReportes" value="'+escaparHTML_(t.emailReportes)+'"><label>Notas</label><textarea id="cfNotas">'+escaparHTML_(t.notas)+"</textarea>",document.getElementById("modalFormCatalogo").classList.add("activo"),setTimeout(function(){const e=document.getElementById("cfRazonSocial");e&&e.focus()},100))}
 
 async function guardarItemCatalogo(){
     if("equipos"===CATALOGO_TAB_ACTIVO){guardarEquipo_();return;}
+    if("repuestos"===CATALOGO_TAB_ACTIVO){guardarRepuesto_();return;}
     if("clientes"!==CATALOGO_TAB_ACTIVO)return void await miAlert("Esta sección estará disponible próximamente.",{icono:"⏳",titulo:"En desarrollo"});
     const e=(document.getElementById("cfRazonSocial")||{}).value||"";
     if(!e.trim())return await miAlert("La Razón Social es obligatoria.",{icono:"⚠️",titulo:"Campo requerido"}),void document.getElementById("cfRazonSocial").focus();
@@ -793,6 +794,166 @@ async function toggleEquipo(codigo, activar) {
       body: JSON.stringify({ args: [codigo, { 'Activo': activar ? 'SI' : 'NO' }] })
     });
     cargarEquipos_();
+  } catch (err) {
+    miError('Error', err.message);
+  }
+}
+
+// ================================================================
+// CATÁLOGO DE REPUESTOS — CRUD
+// ================================================================
+let REPUESTOS_DATOS = [];
+const CATEGORIAS_REPUESTO_BASE = ['Filtros', 'Aceites', 'Motor', 'Eléctrico'];
+
+async function cargarRepuestos_() {
+  const el = document.getElementById('catalogoLista');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando repuestos...</div>';
+  try {
+    const data = await apiFetch(API_URL + '?accion=listarRepuestos');
+    REPUESTOS_DATOS = data || [];
+    renderizarRepuestos_(REPUESTOS_DATOS);
+  } catch (err) {
+    el.innerHTML = '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>';
+  }
+}
+
+function renderizarRepuestos_(lista) {
+  const el = document.getElementById('catalogoLista');
+  if (!lista.length) {
+    el.innerHTML = '<div class="alerta">No hay repuestos. Toca "+ Agregar" para crear uno.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  lista.forEach(function (r) {
+    const activo = String(r.activo || 'SI').trim().toUpperCase() === 'SI';
+    const item = document.createElement('div');
+    item.className = 'catalog-item' + (activo ? '' : ' inactivo');
+    item.innerHTML =
+      '<div class="info">' +
+        '<div class="nombre">' + escaparHTML_(r.descripcion || '—') +
+          (r.categoria ? ' <span class="badge-nivel">' + escaparHTML_(r.categoria) + '</span>' : '') +
+          (activo ? '' : '<span class="badge-inactivo">INACTIVO</span>') +
+        '</div>' +
+        '<div class="sub">' + escaparHTML_(r.codigo) + ' · $' + Number(r.precioUSD || 0).toFixed(2) + '</div>' +
+      '</div>' +
+      '<div class="acciones">' +
+        '<button class="btn-icono" title="Editar" onclick="editarRepuesto(\'' + escaparAttr_(r.codigo) + '\')">✏️</button>' +
+        '<button class="btn-icono rojo" title="' + (activo ? 'Desactivar' : 'Activar') + '" onclick="toggleRepuesto(\'' + escaparAttr_(r.codigo) + '\', ' + !activo + ')">' + (activo ? '🚫' : '✓') + '</button>' +
+      '</div>';
+    el.appendChild(item);
+  });
+}
+
+function filtrarRepuestos_(termino) {
+  const t = String(termino || '').toLowerCase().trim();
+  renderizarRepuestos_(REPUESTOS_DATOS.filter(function (r) {
+    return String(r.codigo).toLowerCase().includes(t) ||
+           String(r.descripcion).toLowerCase().includes(t) ||
+           String(r.categoria).toLowerCase().includes(t);
+  }));
+}
+
+function htmlFormRepuesto_(r) {
+  const v = function (x) { return escaparHTML_(x === undefined || x === null ? '' : String(x)); };
+  const cats = {};
+  CATEGORIAS_REPUESTO_BASE.concat(REPUESTOS_DATOS.map(function (x) { return x.categoria; }))
+    .forEach(function (c) { if (c) cats[c] = true; });
+  const opciones = Object.keys(cats).sort().map(function (c) {
+    return '<option value="' + escaparHTML_(c) + '">';
+  }).join('');
+  return '' +
+    '<label>Código</label>' +
+    '<input type="text" value="' + (r.codigo ? v(r.codigo) : 'Se genera automático (REP-###)') + '" disabled style="background:#f4f6f2;">' +
+    '<label>Descripción *</label>' +
+    '<input type="text" id="repDescripcion" value="' + v(r.descripcion) + '" placeholder="Ej. Filtro de aceite motor">' +
+    '<label>Categoría</label>' +
+    '<input type="text" id="repCategoria" list="repCategorias" value="' + v(r.categoria) + '" placeholder="Ej. Filtros">' +
+    '<datalist id="repCategorias">' + opciones + '</datalist>' +
+    '<label>Precio USD *</label>' +
+    '<input type="number" id="repPrecio" step="0.01" min="0" value="' + v(r.precioUSD) + '" placeholder="Ej. 12.50">' +
+    '<label>Notas</label>' +
+    '<textarea id="repNotas" placeholder="Observaciones internas">' + v(r.notas) + '</textarea>';
+}
+
+function abrirFormRepuesto_() {
+  CATALOGO_ITEM_EDITANDO = null;
+  document.getElementById('modalFormTitulo').textContent = '📦 Nuevo Repuesto';
+  document.getElementById('modalFormContenido').innerHTML = htmlFormRepuesto_({});
+  document.getElementById('modalFormCatalogo').classList.add('activo');
+  setTimeout(function () {
+    const e = document.getElementById('repDescripcion');
+    if (e) e.focus();
+  }, 100);
+}
+
+function editarRepuesto(codigo) {
+  const r = REPUESTOS_DATOS.find(function (x) { return x.codigo === codigo; });
+  if (!r) return miAlert('Repuesto no encontrado.', { icono: '❌' });
+  CATALOGO_ITEM_EDITANDO = codigo;
+  document.getElementById('modalFormTitulo').textContent = '✏️ Editar Repuesto — ' + codigo;
+  document.getElementById('modalFormContenido').innerHTML = htmlFormRepuesto_(r);
+  document.getElementById('modalFormCatalogo').classList.add('activo');
+}
+
+async function guardarRepuesto_() {
+  const descripcion = (document.getElementById('repDescripcion') || {}).value || '';
+  const categoria   = (document.getElementById('repCategoria')   || {}).value || '';
+  const notas       = (document.getElementById('repNotas')       || {}).value || '';
+  const precio      = parseFloat(String((document.getElementById('repPrecio') || {}).value || '').replace(',', '.'));
+
+  if (!descripcion.trim()) return miAlert('La descripción es obligatoria.', { icono: '⚠️', titulo: 'Campo requerido' });
+  if (isNaN(precio) || precio < 0) return miAlert('Indica un precio válido en USD.', { icono: '⚠️', titulo: 'Precio requerido' });
+
+  const datos = {
+    'Descripción': descripcion.trim(),
+    'Categoría':   categoria.trim(),
+    'Precio USD':  precio,
+    'Notas':       notas
+  };
+  const esEdicion = !!CATALOGO_ITEM_EDITANDO;
+  const codigoEditado = CATALOGO_ITEM_EDITANDO;
+  const btn = document.getElementById('modalFormGuardar');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    let codigo = codigoEditado;
+    if (esEdicion) {
+      await apiFetch(API_URL + '?accion=actualizarRepuesto', {
+        method: 'POST',
+        body: JSON.stringify({ args: [codigoEditado, datos] })
+      });
+    } else {
+      datos['Activo'] = 'SI';
+      codigo = await apiFetch(API_URL + '?accion=agregarRepuesto', {
+        method: 'POST',
+        body: JSON.stringify({ args: [datos] })
+      });
+    }
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    cerrarFormCatalogo();
+    await miExito(esEdicion ? 'Repuesto actualizado' : 'Repuesto registrado', 'Código: ' + codigo);
+    cargarRepuestos_();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    miError('Error al guardar', err.message);
+  }
+}
+
+async function toggleRepuesto(codigo, activar) {
+  const confirmado = await miConfirm(
+    '¿Seguro que quieres ' + (activar ? 'activar' : 'desactivar') + ' el repuesto ' + codigo + '?',
+    { icono: '❓', titulo: 'Confirmar', textoSi: activar ? 'Activar' : 'Desactivar' }
+  );
+  if (!confirmado) return;
+  try {
+    await apiFetch(API_URL + '?accion=actualizarRepuesto', {
+      method: 'POST',
+      body: JSON.stringify({ args: [codigo, { 'Activo': activar ? 'SI' : 'NO' }] })
+    });
+    cargarRepuestos_();
   } catch (err) {
     miError('Error', err.message);
   }
