@@ -1049,3 +1049,13 @@ async function guardarTarifa_() {
     miError('Error al guardar', err.message);
   }
 }
+
+/* ===== Dashboard financiero (6.4f) ===== */
+.dash-tabs { display: flex; gap: 8px; margin: 10px 0; }
+.dash-tab { flex: 1; padding: 9px; border: none; border-radius: 8px; background: #e6e9e3; font-size: 13px; font-weight: 700; cursor: pointer; }
+.dash-tab.activo { background: #1A1A1A; color: #fff; }
+.dash-kpi .sub { margin-top: 4px; font-size: 11px; color: #888; }
+.dash-apilada { display: flex; height: 16px; margin: 8px 0 12px; border-radius: 8px; overflow: hidden; background: #eee; }
+.dash-leyenda-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+.dash-leyenda-color { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+.dash-leyenda-fila .monto { margin-left: auto; font-weight: 700; }
