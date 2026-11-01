@@ -102,7 +102,7 @@ function dashListaPendientes_(lista) {
   if (!lista || !lista.length) return '<div class="alerta">No hay reportes esperando aprobación. ✅</div>';
   return lista.map(function (r) {
     const equipo = [r.numeroEquipo, r.tipoEquipo].filter(Boolean).join(' — ');
-    return '<div class="tarea" onclick="revisarReporte(\'' + escaparAttr_(r.codigo) + '\')">' +
+    return '<div class="tarea" onclick="abrirRevisar_(\'' + escaparAttr_(r.codigo) + '\')">' +
       '<span class="badge">⏳ Pendiente</span>' +
       '<div class="eq">' + escaparHTML_(r.codigo) + (equipo ? ' — ' + escaparHTML_(equipo) : '') + '</div>' +
       '<div class="cliente">' + escaparHTML_(r.cliente || '—') + ' · ' + escaparHTML_(r.fecha || '') +
@@ -125,6 +125,7 @@ function dashTabs_(activa) {
   return '<div class="dash-tabs">' +
     tab('operativo', '📊 Operativo', 'cargarDashboardOperativo_') +
     tab('financiero', '💰 Financiero', 'cargarDashboardFinanciero_') +
+    tab('historial', '📚 Historial', 'cargarHistorial_') +
     '</div>';
 }
 
@@ -191,6 +192,183 @@ function htmlDashboardFinanciero_(d) {
       }), 'Aún no hay reportes aprobados con costos este mes.'));
 }
 
+/* ================================================================
+ * FASE 6.5 — HISTORIAL DE REPORTES
+ * ================================================================ */
+
+const HISTORIAL = { filtros: {}, items: [], total: 0, opciones: null };
+const HIST_CLASE_ESTADO = { 'Cerrado': 'verde', 'Rechazado': 'rojo' };
+const HIST_IDS_FILTROS = ['histDesde', 'histHasta', 'histCliente', 'histTecnico', 'histSituacion', 'histEstadoEquipo', 'histEquipo'];
+const HIST_CARGANDO = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+
+// Solo deja pasar enlaces http/https (evita enlaces maliciosos)
+function urlSegura_(url) {
+  return /^https?:\/\//i.test(String(url || '')) ? String(url) : '';
+}
+
+function pedirHistorial_(filtros, offset) {
+  return apiFetch(API_URL + '?accion=listarHistorialReportes', {
+    method: 'POST',
+    body: JSON.stringify({ args: [Object.assign({}, filtros, { offset: offset })] })
+  });
+}
+
+async function cargarHistorial_() {
+  const v = document.getElementById('vista-dashboard-admin');
+  if (!v) return;
+  v.innerHTML = '<h2>📚 Historial de reportes</h2>' + dashTabs_('historial') + HIST_CARGANDO;
+  try {
+    const d = await pedirHistorial_({}, 0);
+    HISTORIAL.filtros = {};
+    HISTORIAL.opciones = d.opciones;
+    HISTORIAL.items = d.items;
+    HISTORIAL.total = d.total;
+    v.innerHTML = htmlHistorial_();
+    pintarResultadosHistorial_();
+  } catch (err) {
+    v.innerHTML = '<h2>📚 Historial de reportes</h2>' + dashTabs_('historial') +
+      '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>' +
+      '<button class="dash-btn-refrescar" onclick="cargarHistorial_()">🔄 Reintentar</button>';
+  }
+}
+
+function histSelect_(id, etiqueta, valores) {
+  return '<label>' + etiqueta + '</label><select id="' + id + '"><option value="">Todos</option>' +
+    valores.map(function (x) {
+      return '<option value="' + escaparHTML_(x) + '">' + escaparHTML_(x) + '</option>';
+    }).join('') + '</select>';
+}
+
+function htmlHistorial_() {
+  const o = HISTORIAL.opciones;
+  return '' +
+    '<div class="dash-cabecera"><h2>📚 Historial de reportes</h2>' +
+    '<button class="dash-btn-refrescar" onclick="cargarHistorial_()">🔄 Actualizar</button></div>' +
+    dashTabs_('historial') +
+
+    '<details class="hist-filtros" id="histFiltros" open><summary>🔎 Filtros</summary>' +
+      '<div class="hist-fechas">' +
+        '<div><label>Desde</label><input type="date" id="histDesde"></div>' +
+        '<div><label>Hasta</label><input type="date" id="histHasta"></div>' +
+      '</div>' +
+      histSelect_('histCliente', 'Cliente', o.clientes) +
+      histSelect_('histTecnico', 'Técnico', o.tecnicos) +
+      histSelect_('histSituacion', 'Situación del reporte', o.situaciones) +
+      histSelect_('histEstadoEquipo', 'Estado del equipo', o.estadosEquipo) +
+      histSelect_('histEquipo', 'Equipo', o.equipos) +
+      '<div class="hist-botones">' +
+        '<button class="dash-btn-refrescar" onclick="buscarHistorial_()">🔎 Buscar</button>' +
+        '<button class="dash-btn-refrescar dash-btn-gris" onclick="limpiarHistorial_()">Limpiar</button>' +
+      '</div>' +
+    '</details>' +
+
+    '<div id="histResultados"></div>';
+}
+
+function leerFiltrosHistorial_() {
+  const valor = function (id) { return (document.getElementById(id) || {}).value || ''; };
+  return {
+    desde: valor('histDesde'),
+    hasta: valor('histHasta'),
+    cliente: valor('histCliente'),
+    tecnico: valor('histTecnico'),
+    situacion: valor('histSituacion'),
+    estadoEquipo: valor('histEstadoEquipo'),
+    equipo: valor('histEquipo')
+  };
+}
+
+async function buscarHistorial_() {
+  const cont = document.getElementById('histResultados');
+  if (!cont) return;
+  HISTORIAL.filtros = leerFiltrosHistorial_();
+  cont.innerHTML = HIST_CARGANDO;
+  try {
+    const d = await pedirHistorial_(HISTORIAL.filtros, 0);
+    HISTORIAL.items = d.items;
+    HISTORIAL.total = d.total;
+    const panel = document.getElementById('histFiltros');
+    if (panel) panel.open = false;
+    pintarResultadosHistorial_();
+  } catch (err) {
+    cont.innerHTML = '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>';
+  }
+}
+
+function limpiarHistorial_() {
+  HIST_IDS_FILTROS.forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  buscarHistorial_();
+}
+
+async function cargarMasHistorial_() {
+  try {
+    const d = await pedirHistorial_(HISTORIAL.filtros, HISTORIAL.items.length);
+    HISTORIAL.items = HISTORIAL.items.concat(d.items);
+    HISTORIAL.total = d.total;
+    pintarResultadosHistorial_();
+  } catch (err) {
+    miError('Error', err.message);
+  }
+}
+
+function pintarResultadosHistorial_() {
+  const cont = document.getElementById('histResultados');
+  if (!cont) return;
+  if (!HISTORIAL.items.length) {
+    cont.innerHTML = '<div class="alerta">No hay reportes con esos filtros.</div>';
+    return;
+  }
+  const hayMas = HISTORIAL.items.length < HISTORIAL.total;
+  cont.innerHTML =
+    '<div class="hist-conteo">' + HISTORIAL.items.length + ' de ' + HISTORIAL.total + ' reportes</div>' +
+    HISTORIAL.items.map(histFila_).join('') +
+    (hayMas
+      ? '<button class="dash-btn-refrescar" style="width:100%;margin-top:10px;" onclick="cargarMasHistorial_()">Cargar más</button>'
+      : '');
+}
+
+function histFila_(r) {
+  const clase = HIST_CLASE_ESTADO[r.estadoReporte] || '';
+  const equipo = [r.numeroEquipo, r.tipoEquipo].filter(Boolean).join(' — ');
+  return '<div class="tarea" onclick="verDetalleHistorial_(\'' + escaparAttr_(r.codigo) + '\')">' +
+    '<span class="badge ' + clase + '">' + escaparHTML_(r.estadoReporte || 'Sin estado') + '</span>' +
+    '<div class="eq">' + escaparHTML_(r.codigo) + (equipo ? ' — ' + escaparHTML_(equipo) : '') + '</div>' +
+    '<div class="cliente">' + escaparHTML_(r.cliente || '—') + ' · ' + escaparHTML_(r.fecha) +
+    (r.tecnico ? ' · ' + escaparHTML_(r.tecnico) : '') + '</div></div>';
+}
+
+function verDetalleHistorial_(codigo) {
+  const r = HISTORIAL.items.find(function (x) { return x.codigo === codigo; });
+  if (!r) return;
+  const dato = function (etiqueta, valor) {
+    return etiqueta + ': <b>' + escaparHTML_(valor || '—') + '</b><br>';
+  };
+  const enlace = function (url, texto) {
+    const u = urlSegura_(url);
+    return u ? '<a href="' + escaparHTML_(u) + '" target="_blank">' + texto + '</a><br>' : '';
+  };
+  abrirModal_({
+    icono: '📄',
+    titulo: codigo,
+    mensaje:
+      dato('Fecha', r.fecha) +
+      dato('Cliente', r.cliente) +
+      dato('Equipo', [r.numeroEquipo, r.tipoEquipo].filter(Boolean).join(' — ')) +
+      dato('Técnico', r.tecnico) +
+      dato('Tipo de mantenimiento', r.tipoMantenimiento) +
+      dato('Situación del reporte', r.estadoReporte) +
+      dato('Estado del equipo', r.estadoEquipo) +
+      (r.motivoRechazo ? dato('Motivo del rechazo', r.motivoRechazo) : '') +
+      '<hr style="margin:10px 0;border:none;border-top:1px solid #ddd">' +
+      enlace(r.pdfTecnico, '📄 Informe técnico (PDF)') +
+      enlace(r.pdfFinanciero, '🔒 Informe financiero (PDF)') +
+      enlace(r.carpetaUrl, '📸 Carpeta de fotos'),
+    botones: [{ texto: 'Cerrar', clase: 'gris' }]
+  });
+}
 function dashComposicion_(a) {
   if (!(a.totalUSD > 0)) return '<div class="alerta">Aún no hay reportes aprobados con costos este mes.</div>';
   const partes = [
