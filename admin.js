@@ -404,3 +404,157 @@ function dashBarrasMonto_(items, textoVacio) {
       '</div>';
   }).join('');
 }
+
+/* ================================================================
+ * FASE B2 — AUTENTICACIÓN (login por usuario + PIN, token de sesión)
+ * Estas funciones reemplazan a las de core.js (admin.js carga después).
+ * ================================================================ */
+
+const CLAVE_ULTIMO_USUARIO = 'rj_ultimo_usuario';
+
+// ---------- Sesión local ----------
+function guardarSesion_(usuario, token) {
+  localStorage.setItem(CLAVE_SESION, JSON.stringify({
+    ok: true, ts: Date.now(), token: token, usuario: usuario
+  }));
+}
+
+// La caducidad real la decide el servidor; aquí solo se exige que haya token
+function sesionValida() {
+  try {
+    const s = JSON.parse(localStorage.getItem(CLAVE_SESION));
+    return !!(s && s.ok && s.token);
+  } catch (e) {
+    return false;
+  }
+}
+
+// ---------- apiFetch: ahora envía el token en cada llamada ----------
+async function apiFetch(url, options) {
+  options = options || {};
+  const sesion = obtenerSesion();
+  const token = (sesion && sesion.token) || '';
+
+  if (options.method === 'POST') {
+    // text/plain evita el preflight de CORS; el token va dentro del cuerpo
+    options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+    const cuerpo = JSON.parse(options.body || '{}');
+    cuerpo.token = token;
+    options.body = JSON.stringify(cuerpo);
+  } else if (token) {
+    url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
+  }
+
+  const response = await fetch(url, options);
+  const json = await response.json();
+
+  if (json.__error) {
+    if (json.__error === 'SESION') {
+      sesionExpirada_();
+      throw new Error('Tu sesión expiró. Ingresa de nuevo.');
+    }
+    if (json.__error === 'SIN_PERMISO') throw new Error('No tienes permiso para esta acción.');
+    throw new Error(json.__error);
+  }
+  return json.data !== undefined ? json.data : json;
+}
+
+// ---------- Pantalla de login ----------
+function limpiarPin_() {
+  [0, 1, 2, 3].forEach(function (i) { document.getElementById('pin' + i).value = ''; });
+}
+
+function mostrarLogin_(mensaje) {
+  document.getElementById('loginOverlay').classList.remove('oculto');
+  cerrarMenu();
+  limpiarPin_();
+  document.getElementById('loginError').textContent = mensaje || '';
+  cargarUsuariosLogin_();
+}
+
+function sesionExpirada_() {
+  localStorage.removeItem(CLAVE_SESION);
+  mostrarLogin_('Tu sesión expiró. Ingresa de nuevo.');
+}
+
+// Crea (si no existe) y llena el selector de usuario sobre las casillas del PIN
+async function cargarUsuariosLogin_() {
+  let sel = document.getElementById('loginUsuario');
+  if (!sel) {
+    const filaPin = document.getElementById('pin0').parentElement;
+    sel = document.createElement('select');
+    sel.id = 'loginUsuario';
+    filaPin.parentElement.insertBefore(sel, filaPin);
+    sel.addEventListener('change', function () {
+      try { localStorage.setItem(CLAVE_ULTIMO_USUARIO, this.value); } catch (e) { /* sin almacenamiento */ }
+      document.getElementById('pin0').focus();
+    });
+  }
+  sel.innerHTML = '<option value="">Cargando usuarios...</option>';
+  try {
+    const lista = await apiFetch(API_URL + '?accion=listarUsuariosLogin');
+    const ultimo = localStorage.getItem(CLAVE_ULTIMO_USUARIO) || '';
+    sel.innerHTML = '<option value="">Selecciona tu usuario</option>' +
+      lista.map(function (u) {
+        return '<option value="' + escaparHTML_(u.nombre) + '"' +
+          (u.nombre === ultimo ? ' selected' : '') + '>' + escaparHTML_(u.nombre) + '</option>';
+      }).join('');
+  } catch (err) {
+    sel.innerHTML = '<option value="">No se pudo cargar (revisa tu conexión)</option>';
+  }
+}
+
+async function validarPin() {
+  const btn = document.getElementById('btnLogin');
+  const error = document.getElementById('loginError');
+  if (btn.disabled) return;   // evita doble envío (auto-envío + botón)
+
+  const usuario = (document.getElementById('loginUsuario') || {}).value || '';
+  const pin = [0, 1, 2, 3].map(function (i) { return document.getElementById('pin' + i).value; }).join('');
+
+  if (!usuario) { error.textContent = 'Selecciona tu usuario.'; return; }
+  if (pin.length < 4) { error.textContent = 'Completa los 4 dígitos.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  error.textContent = '';
+  try {
+    const res = await apiFetch(API_URL + '?accion=login', {
+      method: 'POST',
+      body: JSON.stringify({ args: [usuario, pin] })
+    });
+    if (res && res.ok) {
+      guardarSesion_({ nombre: res.nombre, rol: res.rol, iniciales: res.iniciales }, res.token);
+      limpiarPin_();
+      iniciarApp_(res);
+    } else {
+      error.textContent = (res && res.error) || 'No se pudo iniciar sesión.';
+      limpiarPin_();
+      document.getElementById('pin0').focus();
+    }
+  } catch (err) {
+    error.textContent = 'Error de conexión: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+}
+
+function cerrarSesion() {
+  const s = obtenerSesion();
+  if (s && s.token) {
+    // Avisa al servidor para invalidar el token (si falla, no importa)
+    apiFetch(API_URL + '?accion=cerrarSesion', {
+      method: 'POST',
+      body: JSON.stringify({ args: [s.token] })
+    }).catch(function () {});
+  }
+  localStorage.removeItem(CLAVE_SESION);
+  EQUIPO_CHECKLIST_ACTIVO = null;
+  RESPUESTAS = {};
+  DATOS_CHECKLIST = [];
+  mostrarLogin_('');
+  document.getElementById('pin0').focus();
+}
+
+document.addEventListener('DOMContentLoaded', cargarUsuariosLogin_);
