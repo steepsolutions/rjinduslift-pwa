@@ -558,3 +558,31 @@ function cerrarSesion() {
 }
 
 document.addEventListener('DOMContentLoaded', cargarUsuariosLogin_);
+
+/* ================================================================
+ * Detalle de un reporte (vista del técnico en "Mis Reportes")
+ * Reemplaza a verDetalleReporte_ anterior (esta declaración queda última).
+ * ================================================================ */
+function verDetalleReporte_(codigo) {
+  google.script.run
+    .withSuccessHandler(function (r) {
+      if (!r) return miAlert('No se encontró el reporte.', { icono: '❌' });
+      const dato = function (etiqueta, valor) {
+        return etiqueta + ': <b>' + escaparHTML_(valor || '—') + '</b><br>';
+      };
+      const pdf = urlSegura_(r['PDF Técnico URL']);
+      miAlert(
+        dato('Código', r['Código']) +
+        dato('Fecha', String(r['Fecha'] || '').slice(0, 10)) +
+        dato('Cliente', r['Cliente']) +
+        dato('Equipo', [r['Número Equipo'], r['Tipo Equipo']].filter(Boolean).join(' — ')) +
+        dato('Tipo de mantenimiento', r['Tipo Mantenimiento']) +
+        dato('Situación del reporte', r['Estado Reporte']) +
+        dato('Estado del equipo', r['Estado Equipo']) +
+        (pdf ? '<a href="' + escaparHTML_(pdf) + '" target="_blank">📄 Informe técnico (PDF)</a>' : ''),
+        { icono: '📋', titulo: 'Detalle del reporte' }
+      );
+    })
+    .withFailureHandler(function (err) { miError('Error', err.message); })
+    .obtenerReportePorCodigo(codigo);
+}
