@@ -35,3 +35,6 @@
 .hist-botones button { flex: 1; }
 .hist-conteo { font-size: 12px; font-weight: 700; color: #777; margin: 4px 0 8px; }
 .dash-btn-gris { background: #888; }
+
+/* ===== Login con selector de usuario (B2) ===== */
+#loginUsuario { width: 100%; padding: 12px; margin: 0 0 14px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; background: #fff; box-sizing: border-box; }
