@@ -109,3 +109,120 @@ function dashListaPendientes_(lista) {
       (r.tecnico ? ' · ' + escaparHTML_(r.tecnico) : '') + '</div></div>';
   }).join('');
 }
+
+/* ================================================================
+ * FASE 6.4f — DASHBOARD FINANCIERO
+ * ================================================================ */
+
+function dashUSD_(n) {
+  return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function dashTabs_(activa) {
+  const tab = function (id, texto, funcion) {
+    return '<button class="dash-tab' + (activa === id ? ' activo' : '') + '" onclick="' + funcion + '()">' + texto + '</button>';
+  };
+  return '<div class="dash-tabs">' +
+    tab('operativo', '📊 Operativo', 'cargarDashboardOperativo_') +
+    tab('financiero', '💰 Financiero', 'cargarDashboardFinanciero_') +
+    '</div>';
+}
+
+async function cargarDashboardFinanciero_() {
+  const v = document.getElementById('vista-dashboard-admin');
+  if (!v) return;
+  v.innerHTML = '<h2>💰 Dashboard financiero</h2>' + dashTabs_('financiero') +
+    '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+  try {
+    const d = await apiFetch(API_URL + '?accion=obtenerDashboardFinanciero');
+    v.innerHTML = htmlDashboardFinanciero_(d);
+  } catch (err) {
+    v.innerHTML = '<h2>💰 Dashboard financiero</h2>' + dashTabs_('financiero') +
+      '<div class="alerta rojo">Error: ' + escaparHTML_(err.message) + '</div>' +
+      '<button class="dash-btn-refrescar" onclick="cargarDashboardFinanciero_()">🔄 Reintentar</button>';
+  }
+}
+
+function dashVariacion_(actual, anterior) {
+  if (!(anterior > 0)) return 'Sin datos del mes anterior';
+  const pct = (actual - anterior) / anterior * 100;
+  return (pct >= 0 ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(1) + '% vs mes anterior';
+}
+
+function htmlDashboardFinanciero_(d) {
+  const a = d.actual;
+  const p = d.anterior;
+  const ticket = a.conCosto > 0 ? a.totalUSD / a.conCosto : 0;
+
+  const kpi = function (valor, etiqueta, sub) {
+    return '<div class="dash-kpi"><div class="num" style="font-size:22px;">' + valor + '</div>' +
+      '<div class="lbl">' + etiqueta + '</div>' +
+      (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
+  };
+
+  const aviso = d.sinCostos > 0
+    ? '<div class="alerta">ℹ️ ' + d.sinCostos + ' reporte(s) aprobado(s) este mes no tienen costos cargados y no entran en estos montos.</div>'
+    : '';
+
+  return '' +
+    '<div class="dash-cabecera"><h2>💰 Dashboard financiero</h2>' +
+    '<button class="dash-btn-refrescar" onclick="cargarDashboardFinanciero_()">🔄 Actualizar</button></div>' +
+    dashTabs_('financiero') +
+
+    '<div class="dash-kpis">' +
+      kpi(dashUSD_(a.totalUSD), 'Facturado USD', dashVariacion_(a.totalUSD, p.totalUSD)) +
+      kpi(formatearBs_(a.totalBs), 'Facturado Bs', '') +
+      kpi(a.conCosto, 'Reportes con costo', escaparHTML_(d.mes)) +
+      kpi(dashUSD_(ticket), 'Ticket promedio', 'por reporte') +
+    '</div>' +
+    aviso +
+
+    dashSeccion_('🧮 Composición del total (' + escaparHTML_(d.mes) + ')', dashComposicion_(a)) +
+
+    dashSeccion_('📈 Mes anterior vs mes actual (USD)',
+      dashBarrasMonto_([
+        { nombre: 'Mes anterior (' + d.mesAnterior + ')', valor: p.totalUSD },
+        { nombre: 'Mes actual (' + d.mes + ')', valor: a.totalUSD }
+      ], '')) +
+
+    dashSeccion_('🏢 Total por cliente (mes actual)',
+      dashBarrasMonto_(d.porCliente.slice(0, 8).map(function (c) {
+        return { nombre: c.nombre + ' · ' + c.reportes + ' rep.', valor: c.totalUSD };
+      }), 'Aún no hay reportes aprobados con costos este mes.'));
+}
+
+function dashComposicion_(a) {
+  if (!(a.totalUSD > 0)) return '<div class="alerta">Aún no hay reportes aprobados con costos este mes.</div>';
+  const partes = [
+    { nombre: 'Mano de obra', valor: a.manoObra,  color: '#F5821F' },
+    { nombre: 'Repuestos',    valor: a.repuestos, color: '#1c4a8a' },
+    { nombre: 'Otros',        valor: a.otros,     color: '#8a8a8a' },
+    { nombre: 'Recargo',      valor: a.recargo,   color: '#e0b400' },
+    { nombre: 'IVA',          valor: a.iva,       color: '#6AAA1E' }
+  ];
+  const pct = function (valor) { return valor / a.totalUSD * 100; };
+
+  const barra = '<div class="dash-apilada">' + partes
+    .filter(function (x) { return x.valor > 0; })
+    .map(function (x) { return '<div style="width:' + pct(x.valor).toFixed(2) + '%;background:' + x.color + '"></div>'; })
+    .join('') + '</div>';
+
+  const leyenda = partes.map(function (x) {
+    return '<div class="dash-leyenda-fila"><span class="dash-leyenda-color" style="background:' + x.color + '"></span>' +
+      x.nombre + ' <small>(' + pct(x.valor).toFixed(1) + '%)</small><span class="monto">' + dashUSD_(x.valor) + '</span></div>';
+  }).join('');
+
+  return barra + leyenda;
+}
+
+function dashBarrasMonto_(items, textoVacio) {
+  if (!items || !items.length) return '<div class="alerta">' + textoVacio + '</div>';
+  const max = Math.max.apply(null, items.map(function (i) { return i.valor; }));
+  return items.map(function (i) {
+    const pct = max > 0 ? Math.round(i.valor * 100 / max) : 0;
+    return '<div class="dash-barra">' +
+      '<div class="dash-barra-top"><span>' + escaparHTML_(i.nombre) + '</span><b>' + dashUSD_(i.valor) + '</b></div>' +
+      '<div class="dash-barra-fondo"><div class="dash-barra-relleno" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+  }).join('');
+}
