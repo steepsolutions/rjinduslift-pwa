@@ -586,3 +586,176 @@ function verDetalleReporte_(codigo) {
     .withFailureHandler(function (err) { miError('Error', err.message); })
     .obtenerReportePorCodigo(codigo);
 }
+
+/* ================================================================
+ * FIRMA DE QUIEN APRUEBA (pantalla de revisión del admin)
+ * ================================================================ */
+
+let PAD_APROBADOR = null;
+
+// Pizarra de firma reutilizable (funciona con el dedo y con el mouse)
+function crearPadFirma_(canvas) {
+  const ctx = canvas.getContext('2d');
+  const estado = { dibujando: false, tieneTrazo: false };
+
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = Math.round(rect.width * ratio);
+  canvas.height = Math.round(rect.height * ratio);
+  ctx.scale(ratio, ratio);
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = '#1A1A1A';
+
+  const punto = function (e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const terminar = function () { estado.dibujando = false; };
+
+  canvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    estado.dibujando = true;
+    const p = punto(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  });
+  canvas.addEventListener('pointermove', function (e) {
+    if (!estado.dibujando) return;
+    e.preventDefault();
+    const p = punto(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    estado.tieneTrazo = true;
+  });
+  canvas.addEventListener('pointerup', terminar);
+  canvas.addEventListener('pointercancel', terminar);
+
+  return {
+    tieneTrazo: function () { return estado.tieneTrazo; },
+    limpiar: function () {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      estado.tieneTrazo = false;
+    },
+    imagen: function () {
+      return {
+        data: canvas.toDataURL('image/png').split(',')[1],
+        mimeType: 'image/png',
+        nombre: 'firma-aprobador.png'
+      };
+    }
+  };
+}
+
+// Después de dibujar la pantalla de revisión, agrega la firma sobre los botones
+(function () {
+  const renderizarBase = renderizarRevisar_;
+  renderizarRevisar_ = function (reporte) {
+    renderizarBase(reporte);
+    agregarFirmaAprobador_();
+  };
+})();
+
+function agregarFirmaAprobador_() {
+  const acciones = document.querySelector('#revisarContenido .revisar-acciones');
+  if (!acciones) return;
+  const nombre = ((obtenerSesion() || {}).usuario || {}).nombre || '';
+  acciones.insertAdjacentHTML('beforebegin',
+    '<div class="cierre-seccion"><h3>✍️ Firma de quien aprueba</h3>' +
+      '<label>Nombre de quien firma *</label>' +
+      '<input type="text" id="nombreAprobador" value="' + escaparHTML_(nombre) + '" placeholder="Ej. Ing. Carlos Rodríguez">' +
+      '<label style="margin-top:12px;">Dibuja tu firma con el dedo</label>' +
+      '<div class="firma-wrap"><canvas id="firmaAprobadorCanvas" class="firma-canvas"></canvas></div>' +
+      '<button type="button" class="firma-btn-limpiar" onclick="limpiarFirmaAprobador_()">🧹 Limpiar firma</button>' +
+    '</div>');
+  PAD_APROBADOR = crearPadFirma_(document.getElementById('firmaAprobadorCanvas'));
+}
+
+function limpiarFirmaAprobador_() {
+  if (PAD_APROBADOR) PAD_APROBADOR.limpiar();
+}
+
+function enfocarCampo_(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el.focus) el.focus();
+}
+
+// Reemplaza a aprobarReporte anterior: ahora exige nombre y firma
+function aprobarReporte() {
+  if (!REPORTE_ACTUAL) return;
+  const leer = function (id) { return (document.getElementById(id) || {}).value || ''; };
+
+  const tasa = parseFloat(leer('tasaBCV')) || 0;
+  if (tasa <= 0) {
+    miAlert('Debes ingresar la Tasa BCV antes de aprobar.', { icono: '⚠️', titulo: 'Tasa BCV requerida' });
+    return enfocarCampo_('tasaBCV');
+  }
+  const horas = parseFloat(leer('horasTrabajadas')) || 0;
+  if (horas <= 0) {
+    miAlert('Debes ingresar las horas trabajadas.', { icono: '⚠️', titulo: 'Horas requeridas' });
+    return enfocarCampo_('horasTrabajadas');
+  }
+  const nombre = leer('nombreAprobador').trim();
+  if (!nombre) {
+    miAlert('Indica el nombre de quien firma.', { icono: '⚠️', titulo: 'Nombre requerido' });
+    return enfocarCampo_('nombreAprobador');
+  }
+  if (!PAD_APROBADOR || !PAD_APROBADOR.tieneTrazo()) {
+    miAlert('Debes firmar antes de aprobar el reporte.', { icono: '⚠️', titulo: 'Firma requerida' });
+    return enfocarCampo_('firmaAprobadorCanvas');
+  }
+
+  miConfirm('¿Aprobar y enviar el informe al cliente? Se generarán los PDFs y se enviarán los correos.',
+    { icono: '✅', titulo: 'Confirmar aprobación', textoSi: 'Aprobar y enviar' }
+  ).then(function (confirmado) {
+    if (!confirmado) return;
+
+    const costos = {
+      nivel: COSTOS_ESTADO.nivel,
+      horas: horas,
+      repuestos: COSTOS_ESTADO.repuestos,
+      otros: COSTOS_ESTADO.otros,
+      aplicarRecargo: COSTOS_ESTADO.aplicarRecargo,
+      recargoPorcentaje: COSTOS_ESTADO.recargoPorcentaje,
+      tasaBCV: tasa
+    };
+    const aprobacion = { nombre: nombre, firmaImagen: PAD_APROBADOR.imagen() };
+
+    const btnAprobar = document.getElementById('btnAprobar');
+    const btnRechazar = document.getElementById('btnRechazar');
+    const overlay = document.getElementById('enviandoOverlay');
+    const procesando = function (activo) {
+      btnAprobar.disabled = activo;
+      btnRechazar.disabled = activo;
+      btnAprobar.textContent = activo ? 'Procesando...' : '✅ Aprobar y Enviar';
+      overlay.classList.toggle('activo', activo);
+    };
+
+    procesando(true);
+    document.getElementById('enviandoTitulo').textContent = 'Aprobando reporte...';
+    document.getElementById('enviandoMensaje').textContent = 'Generando PDFs y enviando correos. Puede tardar 30-60 segundos...';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        procesando(false);
+        if (res && res.exito) {
+          actualizarBadgePendientes_();
+          mostrarPantallaExito_(res);
+        } else {
+          miError('Error al aprobar', (res && res.error) || 'Error desconocido');
+        }
+      })
+      .withFailureHandler(function (err) {
+        procesando(false);
+        miError('Error de conexión', err.message);
+      })
+      .aprobarYEnviar(REPORTE_ACTUAL['Código'], costos, aprobacion);
+  });
+}
