@@ -38,3 +38,6 @@
 
 /* ===== Login con selector de usuario (B2) ===== */
 #loginUsuario { width: 100%; padding: 12px; margin: 0 0 14px; border: 1px solid #ccc; border-radius: 10px; font-size: 16px; background: #fff; box-sizing: border-box; }
+
+/* ===== Firma (pizarra táctil) ===== */
+.firma-canvas { touch-action: none; }
