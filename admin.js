@@ -37,6 +37,7 @@ function htmlDashboardOperativo_(d) {
   return '' +
     '<div class="dash-cabecera"><h2>📊 Dashboard operativo</h2>' +
     '<button class="dash-btn-refrescar" onclick="cargarDashboardOperativo_()">🔄 Actualizar</button></div>' +
+    dashTabs_('operativo') +
 
     '<div class="dash-kpis">' +
       kpi(d.totalMes, 'Reportes del mes') +
