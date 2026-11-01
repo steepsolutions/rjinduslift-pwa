@@ -24,3 +24,14 @@
 .dash-leyenda-fila { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; }
 .dash-leyenda-color { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
 .dash-leyenda-fila .monto { margin-left: auto; font-weight: 700; }
+
+/* ===== Historial de reportes (6.5) ===== */
+.hist-filtros { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+.hist-filtros summary { font-weight: 800; font-size: 14px; cursor: pointer; }
+.hist-filtros label { display: block; margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: #555; }
+.hist-filtros select, .hist-filtros input[type=date] { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 14px; background: #fff; }
+.hist-fechas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hist-botones { display: flex; gap: 8px; margin-top: 14px; }
+.hist-botones button { flex: 1; }
+.hist-conteo { font-size: 12px; font-weight: 700; color: #777; margin: 4px 0 8px; }
+.dash-btn-gris { background: #888; }
