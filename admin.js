@@ -440,6 +440,10 @@ async function apiFetch(url, options) {
     options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
     const cuerpo = JSON.parse(options.body || '{}');
     cuerpo.token = token;
+    // Corrección de un reporte rechazado: el envío lleva el código del original
+    if (CORRECCION.codigo && /accion=guardarReporteDesdeApp/.test(url) && cuerpo.datos) {
+      cuerpo.datos.continuarCodigo = CORRECCION.codigo;
+    }
     options.body = JSON.stringify(cuerpo);
   } else if (token) {
     url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
@@ -770,3 +774,194 @@ function aprobarReporte() {
     if (itemCostos) itemCostos.style.display = 'none';
   };
 })();
+
+/* ================================================================
+ * FASE 6.6 — CORREGIR UN REPORTE RECHAZADO
+ * ================================================================ */
+
+const CORRECCION = { codigo: '', reporte: null };
+
+// Salir a cualquier otra pantalla abandona la corrección en curso
+(function () {
+  const irABase = irA;
+  irA = function (vista) {
+    if (CORRECCION.codigo) terminarCorreccion_();
+    irABase(vista);
+  };
+})();
+
+// Asigna un valor a un campo del formulario respetando su tipo (fecha, texto, lista)
+function asignarCampo_(id, valor) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let texto = (valor === undefined || valor === null) ? '' : String(valor);
+  if (el.type === 'date') texto = texto.slice(0, 10);
+  else if (el.type === 'datetime-local') texto = texto.slice(0, 16);
+  el.value = texto;
+}
+
+// Deja el formulario de "Nuevo reporte" limpio, igual que cancelarReporte
+function terminarCorreccion_() {
+  CORRECCION.codigo = '';
+  CORRECCION.reporte = null;
+  EQUIPO_CHECKLIST_ACTIVO = null;
+  RESPUESTAS = {};
+  DATOS_CHECKLIST = [];
+
+  const cliente = document.getElementById('fCliente');
+  const equipo = document.getElementById('fEquipo');
+  if (cliente) { cliente.disabled = false; cliente.value = ''; }
+  if (equipo) {
+    equipo.innerHTML = '<option value="">Selecciona un cliente primero</option>';
+    equipo.disabled = true;
+  }
+  ['fArea', 'fHorometro', 'fSolicitante', 'fResponsable', 'fMecanico',
+   'fTiempoParada', 'fFechaInicio', 'fFechaFin'].forEach(function (id) { asignarCampo_(id, ''); });
+  if (DATOS_FORM) asignarCampo_('fFecha', DATOS_FORM.hoy);
+  const tipo = document.getElementById('fTipoMantenimiento');
+  if (tipo) tipo.selectedIndex = 0;
+  const resumen = document.getElementById('resumenSeleccion');
+  if (resumen) resumen.style.display = 'none';
+  const boton = document.getElementById('btnContinuarChecklist');
+  if (boton) boton.disabled = true;
+}
+
+// Espera a que el formulario de nuevo reporte termine de cargar sus listas
+function esperarFormularioListo_() {
+  return new Promise(function (resolver, rechazar) {
+    let intentos = 0;
+    const temporizador = setInterval(function () {
+      intentos++;
+      const cliente = document.getElementById('fCliente');
+      if (DATOS_FORM && cliente && cliente.options.length > 1) {
+        clearInterval(temporizador);
+        resolver();
+      } else if (intentos > 60) {
+        clearInterval(temporizador);
+        rechazar(new Error('El formulario no terminó de cargar. Intenta de nuevo.'));
+      }
+    }, 150);
+  });
+}
+
+function prellenarDatosGenerales_(r) {
+  const cliente = document.getElementById('fCliente');
+  cliente.value = r['Cliente'];
+  cliente.dispatchEvent(new Event('change'));
+
+  const equipo = document.getElementById('fEquipo');
+  equipo.value = r['Número Equipo'];
+  equipo.dispatchEvent(new Event('change'));
+  if (!equipo.value) {
+    throw new Error('El equipo ' + r['Número Equipo'] + ' ya no está disponible. Avisa al administrador.');
+  }
+
+  asignarCampo_('fFecha', r['Fecha']);
+  asignarCampo_('fTipoMantenimiento', r['Tipo Mantenimiento']);
+  asignarCampo_('fArea', r['Área']);
+  asignarCampo_('fHorometro', r['Horómetro']);
+  asignarCampo_('fSolicitante', r['Solicitante']);
+  asignarCampo_('fTiempoParada', r['Tiempo Parada']);
+  asignarCampo_('fFechaInicio', r['Fecha Inicio Servicio']);
+  asignarCampo_('fFechaFin', r['Fecha Fin Servicio']);
+  asignarCampo_('fResponsable', r['Responsable Principal']);
+  asignarCampo_('fMecanico', r['Mecánico Principal']);
+
+  // Es el mismo reporte: cliente y equipo no se pueden cambiar
+  cliente.disabled = true;
+  equipo.disabled = true;
+}
+
+// Reemplaza al marcador "en desarrollo" de Mis Reportes
+function continuarReporteRechazado_(codigo) {
+  miConfirm('Este reporte fue rechazado. ¿Quieres abrirlo para corregirlo?',
+    { icono: '✏️', titulo: 'Corregir reporte', textoSi: 'Abrir y corregir' }
+  ).then(function (confirmado) {
+    if (confirmado) iniciarCorreccion_(codigo);
+  });
+}
+
+async function iniciarCorreccion_(codigo) {
+  try {
+    const reporte = await new Promise(function (resolver, rechazar) {
+      google.script.run.withSuccessHandler(resolver).withFailureHandler(rechazar)
+        .obtenerReportePorCodigo(codigo);
+    });
+    if (!reporte) throw new Error('No se encontró el reporte.');
+    if (reporte['Estado Reporte'] !== 'Rechazado') throw new Error('Este reporte ya no está rechazado.');
+
+    irA('nuevo-reporte');                 // abre el formulario (y reinicia cualquier estado previo)
+    CORRECCION.codigo = codigo;
+    CORRECCION.reporte = reporte;
+    await esperarFormularioListo_();
+
+    EQUIPO_CHECKLIST_ACTIVO = null;
+    RESPUESTAS = {};
+    DATOS_CHECKLIST = [];
+    prellenarDatosGenerales_(reporte);
+    continuarAChecklist();                // el checklist se completa en aplicarCorreccionAlChecklist_
+  } catch (err) {
+    terminarCorreccion_();
+    miError('No se pudo abrir el reporte', err.message);
+  }
+}
+
+// Después de dibujar el checklist, si hay una corrección en curso, se precarga
+(function () {
+  const renderizarBase = renderizarChecklist_;
+  renderizarChecklist_ = function (equipo, tipo) {
+    renderizarBase(equipo, tipo);
+    if (CORRECCION.codigo) aplicarCorreccionAlChecklist_();
+  };
+})();
+
+// Marca un ítem del checklist (R, E o P) buscándolo por su nombre
+function marcarItemCorreccion_(nombre, letra) {
+  let indice = DATOS_CHECKLIST.findIndex(function (c) { return c.items.indexOf(nombre) !== -1; });
+  if (indice === -1) {
+    // Ítem agregado a mano por el técnico: no se guardó su categoría, va a la primera
+    const primera = DATOS_CHECKLIST[0];
+    if (!primera) return;
+    primera.adicionales = primera.adicionales || [];
+    primera.adicionales.push(nombre);
+    primera.items.push(nombre);
+    document.getElementById('items-cat-0').innerHTML = renderizarItemsCategoria_(primera, 0);
+    restaurarMarcasCategoria_(primera, 0);
+    indice = 0;
+  }
+  const categoria = DATOS_CHECKLIST[indice];
+  marcarREP(categoria.categoria + '|' + nombre, letra, indice, categoria.items.indexOf(nombre));
+}
+
+function aplicarCorreccionAlChecklist_() {
+  const r = CORRECCION.reporte;
+  if (!r) return;
+
+  // 1. Marcas R / E / P
+  const separar = function (texto) {
+    return String(texto || '').split(';').map(function (s) { return s.trim(); }).filter(Boolean);
+  };
+  [['R', r['Checklist R']], ['E', r['Checklist E']], ['P', r['Checklist P']]].forEach(function (par) {
+    separar(par[1]).forEach(function (item) { marcarItemCorreccion_(item, par[0]); });
+  });
+
+  // 2. Informe técnico, observaciones y cierre
+  asignarCampo_('infoMotivo', r['Motivo Ingreso']);
+  asignarCampo_('infoDiagnostico', r['Diagnóstico']);
+  asignarCampo_('infoActividades', r['Actividades Realizadas']);
+  asignarCampo_('infoRepuestos', r['Repuestos Usados']);
+  asignarCampo_('infoRecomendaciones', r['Recomendaciones']);
+  asignarCampo_('obsCliente', r['Observaciones']);
+  asignarCampo_('notasInternas', r['Notas Internas']);
+  asignarCampo_('estadoFinal', r['Estado Equipo']);
+  actualizarAvisoEstado();
+  asignarCampo_('notaCierre', r['Nota Cierre']);
+  asignarCampo_('nombreFirmante', r['Nombre Firmante']);
+
+  // 3. Aviso con el motivo del rechazo
+  document.getElementById('vista-checklist').insertAdjacentHTML('afterbegin',
+    '<div class="alerta rojo"><b>↩️ Reporte rechazado: corrígelo y vuelve a enviarlo</b><br>' +
+    'Motivo: ' + escaparHTML_(r['Motivo Rechazo'] || 'No indicado') + '<br>' +
+    '<small>Debes firmar de nuevo antes de enviar. Las fotos anteriores se conservan; ' +
+    'puedes agregar fotos nuevas.</small></div>');
+}
