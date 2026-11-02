@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rj-induslift-v12';
+const CACHE_NAME = 'rj-induslift-v13';
 const ASSETS = [
   './',
   './index.html',
