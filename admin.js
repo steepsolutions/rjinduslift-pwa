@@ -759,3 +759,14 @@ function aprobarReporte() {
       .aprobarYEnviar(REPORTE_ACTUAL['Código'], costos, aprobacion);
   });
 }
+
+// Oculta la opción "Carga de Costos" (pantalla sin construir: los costos se cargan
+// al crear un reporte como socio o al aprobar uno de un técnico)
+(function () {
+  const iniciarAppBase = iniciarApp_;
+  iniciarApp_ = function (usuario) {
+    iniciarAppBase(usuario);
+    const itemCostos = document.getElementById('menuAdminCos');
+    if (itemCostos) itemCostos.style.display = 'none';
+  };
+})();
