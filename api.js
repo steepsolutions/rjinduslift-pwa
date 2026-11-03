@@ -39,7 +39,12 @@
               }
               if (ok) ok(r.data);
             })
-            .catch(e => { if (fail) fail(e); else console.error(e); });
+            .catch(e => {
+              const error = (e instanceof TypeError)
+                ? new Error('Sin conexión. Revisa tu internet e intenta de nuevo.')
+                : e;
+              if (fail) fail(error); else console.error(error);
+            });
         };
       }
     });
