@@ -977,3 +977,370 @@ document.addEventListener('pointermove', function (e) {
   caja.style.setProperty('--holo-x', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
   caja.style.setProperty('--holo-y', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
 }, { passive: true });
+
+/* ================================================================
+ * FASE C — TRABAJO SIN CONEXIÓN (solo técnicos)
+ * Reemplaza a apiFetch: esta declaración queda última y es la que vale.
+ * ================================================================ */
+
+const COLA_DB = 'rj_cola';
+const COLA_STORE = 'reportes';
+const CACHE_PREFIJO = 'rj_cache:';
+const ACCIONES_CACHEABLES = ['obtenerDatosFormulario', 'obtenerChecklistPorTipo', 'obtenerServiciosDelDia'];
+let SINCRONIZANDO = false;
+
+function nuevoId_() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+}
+
+// ---------- Cola de reportes pendientes (IndexedDB) ----------
+function abrirCola_() {
+  return new Promise(function (resolver, rechazar) {
+    const peticion = indexedDB.open(COLA_DB, 1);
+    peticion.onupgradeneeded = function () {
+      peticion.result.createObjectStore(COLA_STORE, { keyPath: 'idEnvio' });
+    };
+    peticion.onsuccess = function () { resolver(peticion.result); };
+    peticion.onerror = function () { rechazar(peticion.error); };
+  });
+}
+
+function operarCola_(modo, accion) {
+  return abrirCola_().then(function (db) {
+    return new Promise(function (resolver, rechazar) {
+      const tx = db.transaction(COLA_STORE, modo);
+      const peticion = accion(tx.objectStore(COLA_STORE));
+      tx.oncomplete = function () { db.close(); resolver(peticion ? peticion.result : undefined); };
+      tx.onerror = tx.onabort = function () { db.close(); rechazar(tx.error); };
+    });
+  });
+}
+
+function colaListar_() { return operarCola_('readonly', function (s) { return s.getAll(); }); }
+function colaGuardar_(item) { return operarCola_('readwrite', function (s) { return s.put(item); }); }
+function colaEliminar_(id) { return operarCola_('readwrite', function (s) { return s['delete'](id); }); }
+
+function usuarioActual_() { return ((obtenerSesion() || {}).usuario) || {}; }
+
+async function colaDelUsuario_() {
+  const nombre = usuarioActual_().nombre;
+  try {
+    return (await colaListar_()).filter(function (x) { return x.usuario === nombre; });
+  } catch (e) {
+    return [];   // sin IndexedDB disponible
+  }
+}
+
+// ---------- Copia local de las listas que el formulario necesita ----------
+function claveCache_(url) {
+  return CACHE_PREFIJO + (usuarioActual_().rol || '') + ':' + url;
+}
+function guardarCache_(clave, datos) {
+  try { localStorage.setItem(clave, JSON.stringify({ ts: Date.now(), datos: datos })); } catch (e) { /* sin espacio */ }
+}
+function leerCache_(clave) {
+  try {
+    const guardado = JSON.parse(localStorage.getItem(clave));
+    return guardado ? guardado.datos : undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
+// ---------- Llamada de bajo nivel al servidor ----------
+async function llamarApi_(url, options, limiteMs) {
+  options = Object.assign({}, options);
+  const token = (obtenerSesion() || {}).token || '';
+
+  if (options.method === 'POST') {
+    options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };   // evita el preflight de CORS
+    const cuerpo = JSON.parse(options.body || '{}');
+    cuerpo.token = token;
+    options.body = JSON.stringify(cuerpo);
+  } else if (token) {
+    url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
+  }
+
+  const control = new AbortController();
+  const temporizador = setTimeout(function () { control.abort(); }, limiteMs || 30000);
+  options.signal = control.signal;
+
+  let json;
+  try {
+    const respuesta = await fetch(url, options);
+    json = await respuesta.json();
+  } catch (err) {
+    clearTimeout(temporizador);
+    const respuestaRara = err instanceof SyntaxError;
+    const fallo = new Error(respuestaRara
+      ? 'El servidor respondió de forma inesperada. Intenta de nuevo.'
+      : 'Sin conexión. Revisa tu internet e intenta de nuevo.');
+    fallo.esRed = !respuestaRara;
+    throw fallo;
+  }
+  clearTimeout(temporizador);
+
+  if (json.__error) {
+    const mensajes = { SESION: 'Tu sesión expiró. Ingresa de nuevo.', SIN_PERMISO: 'No tienes permiso para esta acción.' };
+    const fallo = new Error(mensajes[json.__error] || json.__error);
+    fallo.codigo = json.__error;
+    if (json.__error === 'SESION') sesionExpirada_();
+    throw fallo;
+  }
+  return json.data !== undefined ? json.data : json;
+}
+
+// ---------- apiFetch: punto único de entrada desde la app ----------
+async function apiFetch(url, options) {
+  options = options || {};
+  const esPost = options.method === 'POST';
+  const accion = (url.match(/[?&]accion=([^&]+)/) || [])[1] || '';
+
+  // Envío de un reporte: con identificador único y, si no hay red, a la cola
+  if (esPost && accion === 'guardarReporteDesdeApp') return enviarReporte_(url, options);
+
+  // Lecturas que deben seguir funcionando sin conexión
+  if (!esPost && ACCIONES_CACHEABLES.indexOf(accion) !== -1) {
+    const clave = claveCache_(url);
+    try {
+      const datos = await llamarApi_(url, options);
+      guardarCache_(clave, datos);
+      return datos;
+    } catch (err) {
+      if (!err.esRed) throw err;
+      const guardado = leerCache_(clave);
+      if (guardado !== undefined) return guardado;
+      throw err;
+    }
+  }
+
+  return llamarApi_(url, options);
+}
+
+async function enviarReporte_(url, options) {
+  const datos = (JSON.parse(options.body || '{}')).datos || {};
+  datos.idEnvio = datos.idEnvio || nuevoId_();
+  // Corrección de un reporte rechazado: el envío lleva el código del original
+  if (CORRECCION.codigo) datos.continuarCodigo = CORRECCION.codigo;
+
+  const usuario = usuarioActual_();
+  try {
+    return await llamarApi_(url, { method: 'POST', body: JSON.stringify({ datos: datos }) }, 120000);
+  } catch (err) {
+    // Solo los técnicos dejan reportes en cola; cualquier otro error se muestra tal cual
+    if (!err.esRed || usuario.rol !== 'tecnico') throw err;
+    await colaGuardar_({
+      idEnvio: datos.idEnvio, usuario: usuario.nombre, creado: Date.now(), error: '',
+      cliente: datos.cliente, equipo: datos.numeroEquipo, fecha: datos.fecha,
+      tipo: datos.tipoMantenimiento, datos: datos
+    });
+    actualizarBarraCola_();
+    return { exito: true, offline: true, idEnvio: datos.idEnvio };
+  }
+}
+
+// ---------- Envío automático de la cola ----------
+async function sincronizarCola_() {
+  if (SINCRONIZANDO || !sesionValida()) return;
+  SINCRONIZANDO = true;
+  let enviados = 0;
+  try {
+    const pendientes = (await colaDelUsuario_())
+      .filter(function (x) { return !x.error; })
+      .sort(function (a, b) { return a.creado - b.creado; });
+
+    for (let i = 0; i < pendientes.length; i++) {
+      const item = pendientes[i];
+      try {
+        const res = await llamarApi_(API_URL + '?accion=guardarReporteDesdeApp',
+          { method: 'POST', body: JSON.stringify({ datos: item.datos }) }, 120000);
+        if (res && res.exito) {
+          await colaEliminar_(item.idEnvio);
+          enviados++;
+        } else {
+          item.error = (res && res.error) || 'El servidor no aceptó el reporte.';
+          await colaGuardar_(item);
+        }
+      } catch (err) {
+        if (err.esRed || err.codigo === 'SESION') break;   // se reintenta más tarde
+        item.error = err.message;
+        await colaGuardar_(item);
+      }
+    }
+  } finally {
+    SINCRONIZANDO = false;
+    actualizarBarraCola_();
+  }
+  if (enviados) {
+    mostrarAviso_('✅ ' + enviados + (enviados === 1 ? ' reporte enviado' : ' reportes enviados'));
+    if (typeof vistaActual !== 'undefined' && vistaActual === 'mis-reportes') cargarMisReportes_();
+  }
+}
+
+function reintentarCola_(id) {
+  colaListar_().then(function (lista) {
+    const item = lista.filter(function (x) { return x.idEnvio === id; })[0];
+    if (!item) return;
+    item.error = '';
+    return colaGuardar_(item).then(sincronizarCola_);
+  });
+}
+
+function descartarCola_(id) {
+  miConfirm('¿Descartar este reporte? Se perderá y no se enviará.',
+    { icono: '🗑️', titulo: 'Descartar reporte', textoSi: 'Descartar' }
+  ).then(function (confirmado) {
+    if (!confirmado) return;
+    colaEliminar_(id).then(function () {
+      actualizarBarraCola_();
+      pintarColaMisReportes_();
+    });
+  });
+}
+
+// ---------- Avisos en pantalla ----------
+function mostrarAviso_(texto) {
+  const aviso = document.createElement('div');
+  aviso.className = 'aviso-flotante';
+  aviso.textContent = texto;
+  document.body.appendChild(aviso);
+  setTimeout(function () { aviso.classList.add('saliendo'); }, 3500);
+  setTimeout(function () { aviso.remove(); }, 4200);
+}
+
+async function actualizarBarraCola_() {
+  let barra = document.getElementById('colaBar');
+  if (!barra) {
+    barra = document.createElement('div');
+    barra.id = 'colaBar';
+    barra.innerHTML = '<span id="colaTexto"></span><button type="button" id="colaBoton">Enviar ahora</button>';
+    document.body.appendChild(barra);
+    document.getElementById('colaBoton').addEventListener('click', sincronizarCola_);
+  }
+  const n = (await colaDelUsuario_()).length;
+  document.getElementById('colaTexto').textContent =
+    '📤 ' + n + (n === 1 ? ' reporte espera' : ' reportes esperan') + ' conexión para enviarse';
+  barra.classList.toggle('visible', n > 0 && sesionValida());
+}
+
+// ---------- Pantalla al guardar sin conexión ----------
+function mostrarPantallaGuardadoOffline_() {
+  const checklist = document.getElementById('vista-checklist');
+  if (checklist) checklist.classList.remove('activa');
+  let vista = document.getElementById('vista-exito');
+  if (!vista) {
+    vista = document.createElement('section');
+    vista.id = 'vista-exito';
+    vista.className = 'vista';
+    document.getElementById('mainContainer').appendChild(vista);
+  }
+  vista.classList.add('activa');
+  vista.innerHTML =
+    '<div class="exito-caja"><div class="exito-icono">📥</div>' +
+    '<div class="exito-titulo" style="color:var(--naranja);">Reporte guardado en tu teléfono</div>' +
+    '<div class="exito-sub">No hay conexión en este momento. El reporte se enviará automáticamente ' +
+    'cuando vuelvas a tener internet, con la app abierta. Puedes verlo en «Mis Reportes».</div>' +
+    '<div class="exito-acciones"><button class="exito-btn exito-btn-nuevo" onclick="nuevoReporteDesdeExito()">➕ Crear otro reporte</button></div></div>';
+  EQUIPO_CHECKLIST_ACTIVO = null;
+  RESPUESTAS = {};
+  DATOS_CHECKLIST = [];
+  window.scrollTo(0, 0);
+}
+
+(function () {
+  const mostrarBase = mostrarPantallaEnvioAlAdmin_;
+  mostrarPantallaEnvioAlAdmin_ = function (res) {
+    if (res && res.offline) return mostrarPantallaGuardadoOffline_();
+    mostrarBase(res);
+  };
+})();
+
+// ---------- "Mis Reportes": pendientes del teléfono arriba de la lista ----------
+async function pintarColaMisReportes_() {
+  const lista = document.getElementById('misReportesLista');
+  if (!lista) return;
+  let contenedor = document.getElementById('misReportesCola');
+  if (!contenedor) {
+    lista.insertAdjacentHTML('beforebegin', '<div id="misReportesCola"></div>');
+    contenedor = document.getElementById('misReportesCola');
+  }
+  const items = await colaDelUsuario_();
+  contenedor.innerHTML = items.map(function (x) {
+    const id = escaparAttr_(x.idEnvio);
+    const detalle = [x.equipo, x.tipo, x.fecha].filter(Boolean).join(' · ');
+    return '<div class="reporte-card pendiente">' +
+      '<div class="fila-1"><span class="codigo">📥 En tu teléfono</span>' +
+      '<span class="estado-pill pill-pendiente">Sin enviar</span></div>' +
+      '<div class="cliente">' + escaparHTML_(x.cliente || '—') + '</div>' +
+      '<div class="equipo">' + escaparHTML_(detalle) + '</div>' +
+      (x.error
+        ? '<div class="cola-error">No se pudo enviar: ' + escaparHTML_(x.error) + '</div>' +
+          '<div class="cola-acciones"><button type="button" onclick="reintentarCola_(\'' + id + '\')">Reintentar</button>' +
+          '<button type="button" onclick="descartarCola_(\'' + id + '\')">Descartar</button></div>'
+        : '<div class="equipo" style="margin-top:6px;">Se enviará automáticamente cuando haya conexión.</div>') +
+      '</div>';
+  }).join('');
+}
+
+(function () {
+  const cargarBase = cargarMisReportes_;
+  cargarMisReportes_ = function () {
+    cargarBase();
+    pintarColaMisReportes_();
+  };
+})();
+
+// ---------- Datos para trabajar sin conexión ----------
+async function precargarOffline_() {
+  if (usuarioActual_().rol !== 'tecnico' || !navigator.onLine) return;
+  try {
+    const formulario = await apiFetch(API_URL + '?accion=obtenerDatosFormulario');
+    const tipos = {};
+    Object.keys(formulario.equiposPorCliente || {}).forEach(function (cliente) {
+      formulario.equiposPorCliente[cliente].forEach(function (equipo) {
+        if (equipo.tipo) tipos[equipo.tipo] = true;
+      });
+    });
+    for (const tipo of Object.keys(tipos)) {
+      await apiFetch(API_URL + '?accion=obtenerChecklistPorTipo&tipo=' + encodeURIComponent(tipo));
+    }
+    await apiFetch(API_URL + '?accion=obtenerServiciosDelDia');
+  } catch (err) { /* sin red: se usa lo ya guardado */ }
+}
+
+// ---------- Mensaje de la barra "sin conexión" según el rol ----------
+function actualizarEstadoConexion() {
+  const barra = document.getElementById('offlineBar');
+  const mensaje = document.getElementById('offlineMsg');
+  if (!barra || !mensaje) return;
+  mensaje.textContent = usuarioActual_().rol === 'tecnico'
+    ? 'Sin conexión — puedes seguir trabajando; los reportes se enviarán cuando vuelva el internet'
+    : 'Sin conexión — necesitas internet para esta acción';
+  barra.classList.toggle('visible', !navigator.onLine);
+}
+
+// ---------- Cuándo intentar enviar ----------
+window.addEventListener('online', function () {
+  actualizarEstadoConexion();
+  sincronizarCola_();
+  precargarOffline_();
+});
+window.addEventListener('offline', actualizarEstadoConexion);
+setInterval(function () { if (navigator.onLine) sincronizarCola_(); }, 45000);
+
+(function () {
+  const iniciarBase = iniciarApp_;
+  iniciarApp_ = function (usuario) {
+    iniciarBase(usuario);
+    actualizarBarraCola_();
+    sincronizarCola_();
+    precargarOffline_();
+  };
+})();
+
+document.addEventListener('DOMContentLoaded', function () {
+  actualizarBarraCola_();
+  // Pide al navegador que no borre los datos guardados (reportes pendientes)
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+});
