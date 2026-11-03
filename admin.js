@@ -965,3 +965,15 @@ function aplicarCorreccionAlChecklist_() {
     '<small>Debes firmar de nuevo antes de enviar. Las fotos anteriores se conservan; ' +
     'puedes agregar fotos nuevas.</small></div>');
 }
+
+// Efecto holográfico del login: el brillo sigue al mouse (solo en computadora)
+document.addEventListener('pointermove', function (e) {
+  if (e.pointerType !== 'mouse') return;
+  const overlay = document.getElementById('loginOverlay');
+  if (!overlay || overlay.classList.contains('oculto')) return;
+  const caja = overlay.querySelector('.login-caja');
+  if (!caja) return;
+  const r = caja.getBoundingClientRect();
+  caja.style.setProperty('--holo-x', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+  caja.style.setProperty('--holo-y', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
+}, { passive: true });
