@@ -41,3 +41,95 @@
 
 /* ===== Firma (pizarra táctil) ===== */
 .firma-canvas { touch-action: none; }
+
+/* ===== Login holográfico ===== */
+
+/* Permite animar el ángulo del borde (si el navegador no lo soporta, el borde queda fijo) */
+@property --holo-angulo { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+/* Fondo: resplandores suaves que flotan detrás de la tarjeta */
+#loginOverlay::before {
+  content: '';
+  position: fixed;
+  inset: -8%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 420px at 18% 22%, rgba(245, 130, 31, .24), transparent 62%),
+    radial-gradient(520px 420px at 82% 72%, rgba(130, 90, 255, .20), transparent 62%),
+    radial-gradient(460px 340px at 50% 108%, rgba(40, 220, 255, .16), transparent 62%);
+  animation: holo-fondo 14s ease-in-out infinite alternate;
+}
+
+/* Tarjeta: queda por encima del fondo y con un halo naranja */
+.login-caja {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 44px rgba(245, 130, 31, .20), 0 24px 60px rgba(0, 0, 0, .55);
+}
+
+/* El contenido va por encima de los efectos (texto y casillas siempre nítidos) */
+.login-caja > * { position: relative; z-index: 1; }
+
+/* Borde iridiscente que gira */
+.login-caja::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(from var(--holo-angulo),
+    #F5821F, #ffd36e, #7cf0c8, #5ce1ff, #b48cff, #ff7ad9, #F5821F);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: holo-giro 7s linear infinite;
+}
+
+/* Destello arcoíris que cruza la tarjeta (más un brillo suave que sigue al mouse) */
+.login-caja::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--holo-x, 50%) var(--holo-y, 35%),
+      rgba(255, 140, 230, .12), rgba(255, 210, 90, .10) 28%, rgba(90, 220, 255, .09) 50%, transparent 68%),
+    linear-gradient(115deg, transparent 32%,
+      rgba(255, 110, 210, .10) 40%, rgba(255, 190, 60, .16) 45%, rgba(120, 255, 200, .16) 50%,
+      rgba(90, 160, 255, .14) 56%, rgba(190, 120, 255, .10) 62%, transparent 70%);
+  background-size: 100% 100%, 220% 100%;
+  background-repeat: no-repeat;
+  background-position: 0 0, 130% 0;
+  animation: holo-destello 6s ease-in-out infinite;
+}
+
+/* Logo con resplandor que pulsa */
+.login-logo { animation: holo-logo 3.2s ease-in-out infinite; }
+
+@keyframes holo-giro { to { --holo-angulo: 360deg; } }
+
+@keyframes holo-fondo {
+  from { transform: translate3d(-2%, -1%, 0) scale(1); }
+  to   { transform: translate3d(2%, 1.5%, 0) scale(1.08); }
+}
+
+@keyframes holo-destello {
+  0%, 50% { background-position: 0 0, 130% 0; }
+  100%    { background-position: 0 0, -25% 0; }
+}
+
+@keyframes holo-logo {
+  0%, 100% { box-shadow: 0 8px 26px rgba(245, 130, 31, .40); }
+  50%      { box-shadow: 0 8px 34px rgba(245, 130, 31, .70), 0 0 22px rgba(255, 200, 90, .45); }
+}
+
+/* Quien tiene desactivadas las animaciones en su teléfono ve la pantalla quieta */
+@media (prefers-reduced-motion: reduce) {
+  #loginOverlay::before, .login-caja::before, .login-caja::after, .login-logo { animation: none; }
+}
