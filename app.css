@@ -133,3 +133,13 @@
 @media (prefers-reduced-motion: reduce) {
   #loginOverlay::before, .login-caja::before, .login-caja::after, .login-logo { animation: none; }
 }
+
+/* ===== Modo sin conexión ===== */
+#colaBar { display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 950; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: #1A1A1A; color: #fff; font-size: 13px; font-weight: 700; border-top: 2px solid var(--naranja); }
+#colaBar.visible { display: flex; }
+#colaBar button { background: var(--naranja); color: #fff; border: none; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.aviso-flotante { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); z-index: 960; max-width: 90%; background: #1A1A1A; color: #fff; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); transition: opacity .6s; }
+.aviso-flotante.saliendo { opacity: 0; }
+.cola-error { margin-top: 8px; padding: 8px 10px; background: #fdf3f2; border-left: 3px solid #C0392B; border-radius: 6px; font-size: 12px; color: #8a1f13; }
+.cola-acciones { display: flex; gap: 8px; margin-top: 8px; }
+.cola-acciones button { flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; background: #e6e9e3; }
