@@ -1344,3 +1344,136 @@ document.addEventListener('DOMContentLoaded', function () {
   // Pide al navegador que no borre los datos guardados (reportes pendientes)
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 });
+
+/* ================================================================
+ * PRIVACIDAD — Ventana de consentimiento y pantalla "Privacidad y seguridad"
+ * ================================================================ */
+
+// ---------- Consentimiento tras el login ----------
+async function verificarConsentimientoUI_() {
+  if (!usuarioActual_().nombre || document.getElementById('consentOverlay')) return;
+  try {
+    const estado = await apiFetch(API_URL + '?accion=verificarConsentimiento');
+    if (estado.aceptada !== estado.vigente) mostrarModalConsentimiento_(estado.vigente);
+  } catch (err) {
+    // Sin conexión o error del servidor: no se bloquea el trabajo; se reintenta en el próximo inicio
+    console.warn('No se pudo verificar el consentimiento:', err.message);
+  }
+}
+
+function mostrarModalConsentimiento_(version) {
+  const overlay = document.createElement('div');
+  overlay.id = 'consentOverlay';
+  overlay.innerHTML =
+    '<div class="consent-caja">' +
+      '<div class="consent-icono">🔒</div>' +
+      '<h2>Privacidad y uso de la aplicación</h2>' +
+      '<p>Antes de continuar, lee y acepta cómo se tratan los datos en esta aplicación (versión ' + escaparHTML_(version) + ').</p>' +
+      '<ul><li>Se guardan los datos de los reportes, las fotos y las firmas.</li>' +
+      '<li>Se registra quién crea y quién aprueba cada reporte.</li>' +
+      '<li>Los informes se comparten por correo y por enlaces de Google Drive.</li></ul>' +
+      '<a href="politicas.html" target="_blank" rel="noopener">Leer el aviso de privacidad, la política de seguridad y los términos de uso</a>' +
+      '<label class="consent-check"><input type="checkbox" id="consentCheck"> He leído y acepto</label>' +
+      '<button type="button" id="consentAceptar" disabled>Aceptar y continuar</button>' +
+      '<button type="button" id="consentRechazar" class="consent-rechazar">No acepto (cerrar sesión)</button>' +
+      '<div id="consentError"></div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+
+  const casilla = document.getElementById('consentCheck');
+  const aceptar = document.getElementById('consentAceptar');
+  const error = document.getElementById('consentError');
+  casilla.addEventListener('change', function () { aceptar.disabled = !casilla.checked; });
+
+  aceptar.addEventListener('click', async function () {
+    aceptar.disabled = true;
+    error.textContent = '';
+    try {
+      await apiFetch(API_URL + '?accion=registrarConsentimiento', {
+        method: 'POST',
+        body: JSON.stringify({ args: [version, navigator.userAgent] })
+      });
+      overlay.remove();
+    } catch (err) {
+      error.textContent = 'No se pudo registrar: ' + err.message;
+      aceptar.disabled = false;
+    }
+  });
+  document.getElementById('consentRechazar').addEventListener('click', function () {
+    overlay.remove();
+    cerrarSesion();
+  });
+}
+
+(function () {
+  const iniciarBase = iniciarApp_;
+  iniciarApp_ = function (usuario) {
+    iniciarBase(usuario);
+    verificarConsentimientoUI_();
+  };
+})();
+
+// ---------- Pantalla "Privacidad y seguridad" ----------
+(function () {
+  const cargarVistaBase = cargarVista;
+  cargarVista = function (vista) {
+    cargarVistaBase(vista);
+    if (vista === 'privacidad') cargarPantallaPrivacidad_();
+  };
+})();
+
+async function cargarPantallaPrivacidad_() {
+  const contenedor = document.getElementById('privacidadContenido');
+  if (!contenedor) return;
+  const usuario = usuarioActual_();
+  contenedor.innerHTML = '<div class="loading"><div class="spinner"></div> Cargando...</div>';
+
+  let consentimiento = 'No se pudo consultar (sin conexión).';
+  try {
+    const estado = await apiFetch(API_URL + '?accion=verificarConsentimiento');
+    consentimiento = estado.aceptada
+      ? 'Aceptaste la versión ' + escaparHTML_(estado.aceptada) + (estado.fecha ? ' el ' + escaparHTML_(estado.fecha) : '') +
+        (estado.aceptada !== estado.vigente ? '. <b>Hay una versión nueva (' + escaparHTML_(estado.vigente) + ') pendiente de aceptar.</b>' : '.')
+      : 'Aún no has aceptado las políticas.';
+  } catch (err) { /* se deja el mensaje por defecto */ }
+
+  const pendientes = (await colaDelUsuario_()).length;
+  const listasGuardadas = Object.keys(localStorage).filter(function (k) { return k.indexOf(CACHE_PREFIJO) === 0; }).length;
+
+  contenedor.innerHTML =
+    dashSeccion_('👤 Mi sesión',
+      '<div>Usuario: <b>' + escaparHTML_(usuario.nombre || '—') + '</b></div>' +
+      '<div>Rol: <b>' + escaparHTML_(usuario.rol === 'admin' ? 'Administrador' : 'Técnico') + '</b></div>' +
+      '<button class="dash-btn-refrescar" style="margin-top:10px;" onclick="cerrarSesion()">🔒 Cerrar sesión</button>') +
+
+    dashSeccion_('📄 Políticas',
+      '<a href="politicas.html" target="_blank" rel="noopener">Aviso de privacidad, política de seguridad y términos de uso</a>' +
+      '<div style="margin-top:8px;">' + consentimiento + '</div>') +
+
+    dashSeccion_('📱 Datos guardados en este dispositivo',
+      '<ul style="margin:0;padding-left:18px;">' +
+        '<li>Tu sesión y el último usuario que entró.</li>' +
+        '<li>Listas guardadas para trabajar sin conexión: ' + listasGuardadas + '.</li>' +
+        '<li>Reportes sin enviar: <b>' + pendientes + '</b>.</li>' +
+      '</ul>' +
+      '<button class="dash-btn-refrescar dash-btn-gris" style="margin-top:10px;" onclick="borrarDatosLocales_()">🗑️ Borrar datos locales y cerrar sesión</button>');
+}
+
+async function borrarDatosLocales_() {
+  const pendientes = await colaDelUsuario_();
+  const aviso = pendientes.length
+    ? '<br><b>Tienes ' + pendientes.length + ' reporte(s) sin enviar: se perderán.</b>'
+    : '';
+  const confirmado = await miConfirm(
+    'Se borrarán los datos guardados en este dispositivo y se cerrará tu sesión.' + aviso,
+    { icono: '🗑️', titulo: 'Borrar datos locales', textoSi: 'Borrar' });
+  if (!confirmado) return;
+
+  Object.keys(localStorage).forEach(function (clave) {
+    if (clave.indexOf(CACHE_PREFIJO) === 0 || clave === CLAVE_ULTIMO_USUARIO) localStorage.removeItem(clave);
+  });
+  for (let i = 0; i < pendientes.length; i++) {
+    try { await colaEliminar_(pendientes[i].idEnvio); } catch (e) { /* ya no existe */ }
+  }
+  cerrarSesion();
+}
