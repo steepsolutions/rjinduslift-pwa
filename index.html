@@ -32,6 +32,7 @@
     </div>
     <button class="btn-login" id="btnLogin">Ingresar</button>
     <div id="loginError"></div>
+    <div class="login-legal"><a href="politicas.html" target="_blank" rel="noopener">Aviso de privacidad y términos de uso</a></div>
   </div>
 </div>
 
@@ -59,6 +60,8 @@
     <button class="menu-item" data-vista="catalogos" onclick="irA('catalogos')" id="menuAdminCat" style="display:none;">🗂️ Catálogos</button>
     <button class="menu-item" data-vista="costos" onclick="irA('costos')" id="menuAdminCos" style="display:none;">💰 Costos</button>
     <button class="menu-item" data-vista="dashboard-admin" onclick="irA('dashboard-admin')" id="menuAdminDash" style="display:none;">📊 Dashboard</button>
+  <div class="menu-sep">Cuenta</div>
+    <button class="menu-item" data-vista="privacidad" onclick="irA('privacidad')">🔒 Privacidad y seguridad</button>
   </nav>
   <div class="menu-footer">
     <button id="btnCerrarSesion" onclick="cerrarSesion()">🔒 CERRAR SESIÓN</button>
@@ -213,6 +216,11 @@
     <div class="catalog-lista" id="catalogoLista">
       <div class="loading"><div class="spinner"></div> Cargando...</div>
     </div>
+  </section>
+
+  <section class="vista" id="vista-privacidad">
+    <h2>🔒 Privacidad y seguridad</h2>
+    <div id="privacidadContenido"></div>
   </section>
 
   <section class="vista" id="vista-costos">
