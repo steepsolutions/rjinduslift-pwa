@@ -143,3 +143,19 @@
 .cola-error { margin-top: 8px; padding: 8px 10px; background: #fdf3f2; border-left: 3px solid #C0392B; border-radius: 6px; font-size: 12px; color: #8a1f13; }
 .cola-acciones { display: flex; gap: 8px; margin-top: 8px; }
 .cola-acciones button { flex: 1; padding: 8px; border: none; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; background: #e6e9e3; }
+
+/* ===== Privacidad ===== */
+.login-legal { margin-top: 12px; text-align: center; font-size: 11px; }
+.login-legal a { color: #888; text-decoration: underline; }
+
+#consentOverlay { position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, .78); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.consent-caja { background: #fff; border-radius: 16px; padding: 22px 20px; max-width: 440px; width: 100%; max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); }
+.consent-caja h2 { margin: 6px 0 8px; font-size: 18px; text-align: center; }
+.consent-caja p, .consent-caja ul { font-size: 13px; line-height: 1.5; margin: 6px 0; }
+.consent-caja a { display: block; margin: 10px 0; font-size: 13px; font-weight: 700; color: var(--naranja); }
+.consent-icono { font-size: 34px; text-align: center; }
+.consent-check { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; font-weight: 700; }
+.consent-caja button { width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 10px; font-size: 14px; font-weight: 800; cursor: pointer; background: var(--naranja); color: #fff; }
+.consent-caja button:disabled { opacity: .45; cursor: not-allowed; }
+.consent-caja .consent-rechazar { background: #e6e9e3; color: #444; }
+#consentError { margin-top: 8px; font-size: 12px; color: #C0392B; }
