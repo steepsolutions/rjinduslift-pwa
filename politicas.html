@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#F5821F">
+<title>R&J Induslift — Privacidad, seguridad y términos</title>
+<style>
+  :root { --naranja: #F5821F; --negro: #1A1A1A; --gris: #5a5a5a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4f6f2; color: var(--negro); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  header { background: var(--negro); color: #fff; padding: 16px 18px; border-bottom: 3px solid var(--naranja); }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; font-size: 12px; color: #ccc; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px 14px 40px; }
+  .indice { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .indice a { background: #fff; color: var(--negro); text-decoration: none; padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 700; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
+  section { background: #fff; border-radius: 12px; padding: 6px 18px 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); }
+  h2 { color: var(--naranja); font-size: 18px; margin: 14px 0 4px; }
+  h3 { font-size: 14px; margin: 16px 0 4px; }
+  ul, ol { margin: 4px 0; padding-left: 20px; }
+  li { margin-bottom: 3px; }
+  .pendiente { background: #fff3b0; padding: 0 4px; border-radius: 3px; font-weight: 700; }
+  #bannerBorrador { display: none; background: #fff3b0; border: 1px solid #e0b400; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>R&J Induslift — Privacidad, seguridad y términos de uso</h1>
+  <p>Versión <span data-campo="VERSION"></span> · Vigente desde <span data-campo="VIGENTE_DESDE"></span></p>
+</header>
+
+<main>
+  <div id="bannerBorrador"><b>Borrador pendiente de revisión legal.</b> Los textos marcados como [COMPLETAR] deben llenarse antes de publicar.</div>
+
+  <nav class="indice">
+    <a href="#privacidad">Aviso de privacidad</a>
+    <a href="#seguridad">Seguridad</a>
+    <a href="#terminos">Términos de uso</a>
+  </nav>
+
+  <!-- ===================== AVISO DE PRIVACIDAD ===================== -->
+  <section id="privacidad">
+    <h2>Aviso de privacidad</h2>
+
+    <h3>Quién es el responsable</h3>
+    <p>R&J Induslift Mobile, C.A., RIF J-50827388-5. Contacto: <span data-campo="CONTACTO_EMAIL"></span> · <span data-campo="CONTACTO_TELEFONO"></span>.</p>
+
+    <h3>A quién se aplica</h3>
+    <p>A las personas que usan la aplicación (personal de R&J, socios y otras personas autorizadas por R&J) y a las personas de contacto de los clientes cuyos datos se registran.</p>
+
+    <h3>Qué datos se tratan</h3>
+    <ul>
+      <li><b>Usuarios:</b> nombre, rol (técnico o administrador) e iniciales. El PIN no se guarda: solo se guarda una huella cifrada (hash) del PIN.</li>
+      <li><b>Sesión:</b> un código de sesión, guardado en el dispositivo y en el servidor.</li>
+      <li><b>Reportes de servicio:</b> cliente, equipo, serial, ubicación del equipo, solicitante, responsable, mecánico, fechas, tiempo de parada, checklist, textos libres (motivo, diagnóstico, actividades, repuestos, recomendaciones, observaciones y notas internas) y estado.</li>
+      <li><b>Fotos</b> del servicio.</li>
+      <li><b>Firmas:</b> el nombre de quien firma y la imagen de la firma dibujada en pantalla (técnico y quien aprueba).</li>
+      <li><b>Trazabilidad:</b> quién registró y quién aprobó cada reporte, con fechas.</li>
+      <li><b>Datos de clientes:</b> razón social, RIF, persona de contacto, teléfono, correo, dirección, y el WhatsApp y correo para enviar reportes.</li>
+      <li><b>Costos y tarifas</b> (solo los ven los administradores).</li>
+      <li><b>Consentimiento:</b> usuario, versión aceptada, fecha y hora, y el tipo de navegador o dispositivo que informa el equipo.</li>
+    </ul>
+    <p><b>No se recopila:</b> ubicación geográfica, datos biométricos, contactos ni archivos del teléfono. La aplicación no usa publicidad ni herramientas de analítica.</p>
+
+    <h3>Para qué se usan</h3>
+    <ul>
+      <li>Gestionar y documentar los servicios de mantenimiento.</li>
+      <li>Generar informes técnicos y financieros.</li>
+      <li>Comunicarse con clientes y socios por correo y WhatsApp.</li>
+      <li>Controlar el acceso a la aplicación y saber quién registra y aprueba cada reporte.</li>
+    </ul>
+
+    <h3>Con quién se comparten</h3>
+    <ul>
+      <li><b>Google</b> (Sheets, Drive, Gmail y Apps Script): almacena los datos y envía los correos.</li>
+      <li><b>GitHub</b> (GitHub Pages): aloja los archivos de la aplicación. No recibe datos de los reportes.</li>
+      <li><b>WhatsApp:</b> la aplicación puede generar un enlace con un resumen del reporte (cliente, equipo, fecha, estado, actividades y enlaces a los archivos). El mensaje solo se envía si la persona lo envía desde su WhatsApp.</li>
+      <li><b>Destinatarios de los informes:</b> el informe técnico se envía por correo al cliente; el informe financiero, al correo interno de R&J.</li>
+    </ul>
+    <p>Google y GitHub pueden almacenar y procesar datos en servidores ubicados fuera de Venezuela.</p>
+
+    <h3>Enlaces a archivos</h3>
+    <p>Los informes, las fotos y las firmas se guardan en Google Drive y se comparten mediante enlaces: <b>cualquier persona que tenga el enlace puede abrir el archivo o la carpeta</b>. No reenvíes estos enlaces a personas no autorizadas.</p>
+
+    <h3>Datos guardados en tu dispositivo</h3>
+    <ul>
+      <li>El código de sesión y el último usuario que entró.</li>
+      <li>Copia de las listas de clientes, equipos, checklists y servicios, para poder trabajar sin conexión.</li>
+      <li>Los reportes que aún no se han enviado (con sus fotos y firma), si se crearon sin conexión.</li>
+    </ul>
+    <p>La aplicación no cifra estos datos. Puedes borrarlos desde el menú <b>Privacidad y seguridad</b>. Si borras los reportes pendientes sin enviar, se pierden.</p>
+
+    <h3>Cuánto tiempo se conservan</h3>
+    <p>R&J no borra automáticamente los reportes, fotos ni firmas. Se conservan mientras R&J los necesite para la gestión del servicio y sus obligaciones, y se eliminan cuando R&J lo decida o ante una solicitud válida. Plazo de conservación: <span class="pendiente">[COMPLETAR]</span>. Los archivos eliminados de Google Drive pueden permanecer un tiempo en la papelera de Google antes de borrarse definitivamente.</p>
+
+    <h3>Tus derechos y cómo ejercerlos</h3>
+    <p>Puedes pedir acceso a tus datos, corregirlos o solicitar su eliminación. Escribe o llama al contacto indicado arriba. R&J verificará tu identidad y te confirmará la respuesta por el mismo medio.</p>
+
+    <h3>Cambios</h3>
+    <p>Si este documento cambia, se publica una nueva versión y se te pedirá aceptarla de nuevo.</p>
+  </section>
+
+  <!-- ===================== SEGURIDAD ===================== -->
+  <section id="seguridad">
+    <h2>Política de seguridad</h2>
+
+    <h3>Qué hace la aplicación para proteger los datos</h3>
+    <ul>
+      <li>El acceso requiere usuario y PIN. El PIN se guarda solo como huella cifrada (hash con sal).</li>
+      <li>Tras 8 intentos fallidos de un mismo usuario, el acceso se bloquea 5 minutos.</li>
+      <li>La sesión se cierra tras 6 horas sin actividad. Al cerrar sesión, el código de sesión se invalida en el servidor.</li>
+      <li>Los permisos por rol se aplican en el servidor: los técnicos solo ven sus propios reportes y no reciben costos, tarifas ni datos de contacto de los clientes. Los administradores tienen acceso completo.</li>
+      <li>Eliminar a un usuario corta su acceso al servidor de inmediato.</li>
+      <li>Las conexiones usan HTTPS.</li>
+      <li>Cada reporte registra quién lo creó y quién lo aprobó.</li>
+    </ul>
+
+    <h3>Límites que debes conocer</h3>
+    <ul>
+      <li>El PIN es numérico y corto: no lo compartas ni lo uses en otros servicios.</li>
+      <li>Los datos guardados en el dispositivo no están cifrados por la aplicación.</li>
+      <li>Quien tenga un enlace de Google Drive puede abrir lo que el enlace comparte.</li>
+      <li>La disponibilidad y la protección de los datos en Google y GitHub dependen de esos proveedores.</li>
+    </ul>
+
+    <h3>Qué debes hacer tú</h3>
+    <ul>
+      <li>No compartas tu PIN. Cierra sesión en equipos compartidos.</li>
+      <li>Mantén tu teléfono con bloqueo de pantalla.</li>
+      <li>Avisa de inmediato si pierdes el dispositivo o sospechas que alguien usó tu cuenta.</li>
+    </ul>
+
+    <h3>Si se pierde un dispositivo o hay un incidente</h3>
+    <ol>
+      <li>La persona avisa de inmediato al contacto de R&J.</li>
+      <li>R&J elimina el usuario o cambia su PIN. El acceso al servidor se corta al instante.</li>
+      <li>R&J revisa los reportes recientes de ese usuario.</li>
+      <li>R&J registra el incidente: fecha, qué pasó y medidas tomadas.</li>
+      <li>Si hay datos de terceros afectados, R&J evalúa a quién debe avisar.</li>
+    </ol>
+    <p>Un dispositivo perdido no se puede borrar a distancia: los datos ya guardados en él (por ejemplo, reportes pendientes de enviar) permanecen ahí.</p>
+  </section>
+
+  <!-- ===================== TÉRMINOS ===================== -->
+  <section id="terminos">
+    <h2>Términos de uso</h2>
+    <ol>
+      <li><b>Uso autorizado.</b> La aplicación es solo para el personal y las personas autorizadas por R&J.</li>
+      <li><b>Tu cuenta.</b> El PIN es personal e intransferible. Eres responsable de lo que se registre con tu usuario.</li>
+      <li><b>Veracidad.</b> Los reportes, fotos y firmas deben reflejar el trabajo realizado. Evita fotografiar personas si no es necesario.</li>
+      <li><b>Uso prohibido.</b> Intentar acceder sin autorización, eludir los controles, o compartir archivos y enlaces con personas no autorizadas.</li>
+      <li><b>Propiedad.</b> Los reportes y datos registrados pertenecen a R&J.</li>
+      <li><b>Disponibilidad.</b> La aplicación depende de servicios de Google y GitHub y no garantiza funcionamiento continuo.</li>
+      <li><b>Cambios.</b> Estos términos pueden cambiar. Se publicará una nueva versión y se pedirá aceptarla.</li>
+      <li><b>Ley aplicable y jurisdicción.</b> <span class="pendiente">[COMPLETAR]</span></li>
+    </ol>
+  </section>
+</main>
+
+<script>
+  // ⚠️ VERSION debe ser igual a POLITICAS_VERSION en Consentimiento.gs.
+  // Si cambias el contenido, sube la versión en los DOS sitios: todos tendrán que aceptar de nuevo.
+  const POLITICAS = {
+    VERSION: '1.0',
+    VIGENTE_DESDE: '2026-11-04',          // actualízala el día que publiques
+    CONTACTO_EMAIL: 'COMPLETAR',          // correo de contacto para estos temas
+    CONTACTO_TELEFONO: 'COMPLETAR',       // teléfono / WhatsApp de contacto
+    REVISION_LEGAL_PENDIENTE: true        // pasa a false cuando el abogado lo revise
+  };
+
+  document.querySelectorAll('[data-campo]').forEach(function (el) {
+    const valor = POLITICAS[el.getAttribute('data-campo')];
+    if (valor === 'COMPLETAR') {
+      el.className = 'pendiente';
+      el.textContent = '[COMPLETAR]';
+    } else {
+      el.textContent = valor;
+    }
+  });
+  if (POLITICAS.REVISION_LEGAL_PENDIENTE) document.getElementById('bannerBorrador').style.display = 'block';
+</script>
+</body>
+</html>
