@@ -1477,3 +1477,76 @@ async function borrarDatosLocales_() {
   }
   cerrarSesion();
 }
+
+/* ================================================================
+ * PIN DE 6 DÍGITOS
+ * Estas declaraciones quedan últimas y reemplazan a las de 4 casillas.
+ * ================================================================ */
+
+const PIN_DIGITOS = 6;
+
+function limpiarPin_() {
+  for (let i = 0; i < PIN_DIGITOS; i++) {
+    const casilla = document.getElementById('pin' + i);
+    if (casilla) casilla.value = '';
+  }
+}
+
+async function validarPin() {
+  const btn = document.getElementById('btnLogin');
+  const error = document.getElementById('loginError');
+  if (btn.disabled) return;   // evita doble envío (auto-envío + botón)
+
+  const usuario = (document.getElementById('loginUsuario') || {}).value || '';
+  let pin = '';
+  for (let i = 0; i < PIN_DIGITOS; i++) pin += (document.getElementById('pin' + i) || {}).value || '';
+
+  if (!usuario) { error.textContent = 'Selecciona tu usuario.'; return; }
+  if (pin.length < PIN_DIGITOS) { error.textContent = 'Completa los ' + PIN_DIGITOS + ' dígitos.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+  error.textContent = '';
+  try {
+    const res = await apiFetch(API_URL + '?accion=login', {
+      method: 'POST',
+      body: JSON.stringify({ args: [usuario, pin] })
+    });
+    if (res && res.ok) {
+      guardarSesion_({ nombre: res.nombre, rol: res.rol, iniciales: res.iniciales }, res.token);
+      limpiarPin_();
+      iniciarApp_(res);
+    } else {
+      error.textContent = (res && res.error) || 'No se pudo iniciar sesión.';
+      limpiarPin_();
+      document.getElementById('pin0').focus();
+    }
+  } catch (err) {
+    error.textContent = 'Error de conexión: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Ingresar';
+  }
+}
+
+// Reemplaza las casillas por copias sin los controles antiguos (que eran de 4) y activa los nuevos
+function activarCasillasPin_() {
+  for (let i = 0; i < PIN_DIGITOS; i++) {
+    const original = document.getElementById('pin' + i);
+    if (!original) continue;
+    const casilla = original.cloneNode(true);   // el clon no trae los listeners anteriores
+    original.replaceWith(casilla);
+
+    casilla.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 1);
+      if (this.value && i < PIN_DIGITOS - 1) document.getElementById('pin' + (i + 1)).focus();
+      if (this.value && i === PIN_DIGITOS - 1) validarPin();
+    });
+    casilla.addEventListener('keydown', function (e) {
+      if (e.key === 'Backspace' && !this.value && i > 0) document.getElementById('pin' + (i - 1)).focus();
+      if (e.key === 'Enter') validarPin();
+    });
+  }
+}
+// Se registra después del código de core.js, así que corre cuando ese ya puso sus controles
+document.addEventListener('DOMContentLoaded', activarCasillasPin_);
