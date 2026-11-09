@@ -1,69 +1,45 @@
-const CACHE_NAME = 'rj-induslift-v18';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './assets/icon-192.png',
-  './assets/icon-512.png',
-  './assets/icon-maskable.png'
+/* sw.js — App shell offline-first con actualización atómica */
+const CACHE_NAME = 'rj-induslift-v30';   // SUBIR en cada despliegue
+const SHELL = [
+  './', './index.html', './manifest.json', './app.css', './api.js', './core.js', './admin.js',
+  './politicas.html', './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable.png'
 ];
 
-self.addEventListener('install', function(event) {
+self.addEventListener('install', function (event) {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(function(cache) {
-      return cache.addAll(ASSETS);
-    }).then(function() {
-      return self.skipWaiting();
-    })
+    caches.open(CACHE_NAME)
+      // addAll es atómico; 'reload' salta la caché HTTP de GitHub Pages (max-age=600)
+      .then(function (cache) {
+        return cache.addAll(SHELL.map(function (url) { return new Request(url, { cache: 'reload' }); }));
+      })
+      .then(function () { return self.skipWaiting(); })
   );
 });
 
-self.addEventListener('activate', function(event) {
+self.addEventListener('activate', function (event) {
   event.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(key) { return key !== CACHE_NAME; })
-            .map(function(key) { return caches.delete(key); })
-      );
-    }).then(function() {
-      return self.clients.claim();
-    })
+    caches.keys()
+      .then(function (claves) {
+        return Promise.all(claves.filter(function (c) { return c !== CACHE_NAME; })
+          .map(function (c) { return caches.delete(c); }));
+      })
+      .then(function () { return self.clients.claim(); })
   );
 });
 
-self.addEventListener('fetch', function(event) {
-  const url = event.request.url;
+self.addEventListener('fetch', function (event) {
+  const req = event.request;
+  if (req.method !== 'GET') return;                        // login, envíos, etc.: nunca se interceptan
+  if (new URL(req.url).origin !== self.location.origin) return;   // API de Google y terceros: directo a la red
 
-  // 1. NO interceptar llamadas a Google (Apps Script, APIs, etc.)
-  if (url.indexOf('script.google.com') !== -1 ||
-      url.indexOf('googleusercontent.com') !== -1 ||
-      url.indexOf('google.com') !== -1) {
-    return; // Dejar que el navegador maneje la petición normalmente
-  }
-
-  // 2. Para el resto, usar caché primero, luego red
   event.respondWith(
-    caches.match(event.request).then(function(response) {
-      if (response) {
-        return response; // Devolver desde caché
-      }
-      return fetch(event.request).then(function(fetchResponse) {
-        // Solo cachear peticiones GET exitosas
-        if (event.request.method === 'GET' && fetchResponse.ok) {
-          const responseClone = fetchResponse.clone();
-          caches.open(CACHE_NAME).then(function(cache) {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return fetchResponse;
+    caches.match(req, { ignoreSearch: req.mode === 'navigate' }).then(function (cacheada) {
+      if (cacheada) return cacheada;                       // shell: respuesta inmediata, sin red
+      return fetch(req).catch(function () {
+        return req.mode === 'navigate'
+          ? caches.match('./index.html')
+          : new Response('', { status: 504, statusText: 'Sin conexión' });
       });
-    }).catch(function() {
-      // Solo devolver index.html si la petición es para una página HTML
-      if (event.request.mode === 'navigate') {
-        return caches.match('./index.html');
-      }
-      // Para otros recursos, devolver un error limpio
-      return new Response('', { status: 404, statusText: 'Not Found' });
     })
   );
 });
