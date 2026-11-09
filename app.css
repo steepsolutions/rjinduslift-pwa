@@ -159,3 +159,11 @@
 .consent-caja button:disabled { opacity: .45; cursor: not-allowed; }
 .consent-caja .consent-rechazar { background: #e6e9e3; color: #444; }
 #consentError { margin-top: 8px; font-size: 12px; color: #C0392B; }
+
+/* ===== PIN de 6 casillas ===== */
+.pin-fila { gap: 6px; }
+.pin-fila input { width: 40px; min-width: 0; }
+
+/* Casilla "He leído y acepto" alineada */
+.consent-check input { width: auto; margin: 0; flex: 0 0 auto; }
+.consent-check { justify-content: flex-start; }
