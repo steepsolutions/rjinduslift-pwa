@@ -1129,7 +1129,7 @@ async function enviarReporte_(url, options) {
     return await llamarApi_(url, { method: 'POST', body: JSON.stringify({ datos: datos }) }, 120000);
   } catch (err) {
     // Solo los técnicos dejan reportes en cola; cualquier otro error se muestra tal cual
-    if (!err.esRed || usuario.rol !== 'tecnico') throw err;
+    if (!esErrorReintentable_(err) || usuario.rol !== 'tecnico') throw err;
     await colaGuardar_({
       idEnvio: datos.idEnvio, usuario: usuario.nombre, creado: Date.now(), error: '',
       cliente: datos.cliente, equipo: datos.numeroEquipo, fecha: datos.fecha,
@@ -1163,7 +1163,7 @@ async function sincronizarCola_() {
           await colaGuardar_(item);
         }
       } catch (err) {
-        if (err.esRed || err.codigo === 'SESION') break;   // se reintenta más tarde
+        if (esErrorReintentable_(err) || err.codigo === 'SESION') break;   // se reintenta más tarde
         item.error = err.message;
         await colaGuardar_(item);
       }
@@ -1550,3 +1550,9 @@ function activarCasillasPin_() {
 }
 // Se registra después del código de core.js, así que corre cuando ese ya puso sus controles
 document.addEventListener('DOMContentLoaded', activarCasillasPin_);
+
+// Errores que se resuelven solos al reintentar: sin red, bloqueo ocupado, cuotas momentáneas
+function esErrorReintentable_(err) {
+  return !!err.esRed ||
+    /lock|timeout|tiempo de espera|too many times|exceeded|try again|respondió de forma inesperada/i.test(err.message || '');
+}
