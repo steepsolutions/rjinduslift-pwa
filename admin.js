@@ -706,6 +706,11 @@ function aprobarReporte() {
     miAlert('Debes ingresar las horas trabajadas.', { icono: '⚠️', titulo: 'Horas requeridas' });
     return enfocarCampo_('horasTrabajadas');
   }
+  const problemaCostos = validarRangosCostos_(horas, tasa);
+  if (problemaCostos) {
+    miAlert(problemaCostos, { icono: '⚠️', titulo: 'Revisa los costos' });
+    return;
+  }
   const nombre = leer('nombreAprobador').trim();
   if (!nombre) {
     miAlert('Indica el nombre de quien firma.', { icono: '⚠️', titulo: 'Nombre requerido' });
@@ -1555,4 +1560,26 @@ document.addEventListener('DOMContentLoaded', activarCasillasPin_);
 function esErrorReintentable_(err) {
   return !!err.esRed ||
     /lock|timeout|tiempo de espera|too many times|exceeded|try again|respondió de forma inesperada/i.test(err.message || '');
+}
+
+// Mismos límites que LIMITES_COSTOS de Costos.gs
+const LIMITES_COSTOS_UI = { horasMax: 300, recargoMax: 100, tasaMin: 1, tasaMax: 100000 };
+
+function validarRangosCostos_(horas, tasa) {
+  const L = LIMITES_COSTOS_UI;
+  if (horas > L.horasMax) return 'Las horas trabajadas (' + horas + ') superan el máximo de ' + L.horasMax + '.';
+  if (tasa < L.tasaMin || tasa > L.tasaMax) {
+    return 'La tasa BCV (' + tasa + ') parece incorrecta. Debe estar entre ' + L.tasaMin + ' y ' + L.tasaMax + '.';
+  }
+  if (COSTOS_ESTADO.aplicarRecargo &&
+      (COSTOS_ESTADO.recargoPorcentaje < 0 || COSTOS_ESTADO.recargoPorcentaje > L.recargoMax)) {
+    return 'El recargo debe estar entre 0 y ' + L.recargoMax + ' %.';
+  }
+  if (COSTOS_ESTADO.otros.some(function (o) { return !(Number(o.montoUSD) >= 0); })) {
+    return 'Los montos de "Otros" no pueden ser negativos.';
+  }
+  if (COSTOS_ESTADO.repuestos.some(function (r) { return !(r.cantidad >= 1); })) {
+    return 'Hay un repuesto con una cantidad inválida.';
+  }
+  return '';
 }
