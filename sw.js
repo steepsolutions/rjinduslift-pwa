@@ -1,8 +1,8 @@
 /* sw.js — App shell offline-first con actualización atómica */
-const CACHE_NAME = 'rj-induslift-v31';   // SUBIR en cada despliegue
+const CACHE_NAME = 'rj-induslift-v32';   // SUBIR en cada despliegue
 const SHELL = [
   './', './index.html', './manifest.json', './app.css', './api.js', './core.js', './admin.js',
-  './politicas.html', './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable.png'
+  './iconos.js', './tema.js', './politicas.html', './assets/icon-192.png', './assets/icon-512.png', './assets/icon-maskable.png'
 ];
 
 self.addEventListener('install', function (event) {
