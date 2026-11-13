@@ -14,6 +14,16 @@
 <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
 <link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="app.css">
+<script>
+  // Aplica el tema guardado antes de dibujar la pantalla
+  (function () {
+    try {
+      var pref = localStorage.getItem('rj_tema') || 'auto';
+      var oscuro = pref === 'oscuro' || (pref === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-tema', oscuro ? 'oscuro' : 'claro');
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 
@@ -52,21 +62,21 @@
   </div>
   <nav id="menuNav">
     <div class="menu-sep">Operación</div>
-    <button class="menu-item" data-vista="dashboard-tecnico" onclick="irA('dashboard-tecnico')">🏠 Inicio</button>
-    <button class="menu-item" data-vista="nuevo-reporte" onclick="irA('nuevo-reporte')">📝 Nuevo reporte</button>
-    <button class="menu-item" data-vista="mis-reportes" onclick="irA('mis-reportes')" id="menuTecMisReportes">📤 Mis Reportes</button>
+    <button class="menu-item" data-vista="dashboard-tecnico" onclick="irA('dashboard-tecnico')"><span data-ico="home"></span>Inicio</button>
+    <button class="menu-item" data-vista="nuevo-reporte" onclick="irA('nuevo-reporte')"><span data-ico="file-plus"></span>Nuevo reporte</button>
+    <button class="menu-item" data-vista="mis-reportes" onclick="irA('mis-reportes')" id="menuTecMisReportes"><span data-ico="clipboard-list"></span>Mis Reportes</button>
     <div class="menu-sep" id="menuSepAdmin" style="display:none;">Administración</div>
     <button class="menu-item" data-vista="pendientes" onclick="irA('pendientes')" id="menuAdminPendientes" style="display:none;">
-      📥 Reportes Pendientes <span class="menu-badge" id="badgePendientes">0</span>
+      <span data-ico="inbox"></span>Reportes Pendientes <span class="menu-badge" id="badgePendientes">0</span>
     </button>
-    <button class="menu-item" data-vista="catalogos" onclick="irA('catalogos')" id="menuAdminCat" style="display:none;">🗂️ Catálogos</button>
-    <button class="menu-item" data-vista="costos" onclick="irA('costos')" id="menuAdminCos" style="display:none;">💰 Costos</button>
-    <button class="menu-item" data-vista="dashboard-admin" onclick="irA('dashboard-admin')" id="menuAdminDash" style="display:none;">📊 Dashboard</button>
-  <div class="menu-sep">Cuenta</div>
-    <button class="menu-item" data-vista="privacidad" onclick="irA('privacidad')">🔒 Privacidad y seguridad</button>
+    <button class="menu-item" data-vista="catalogos" onclick="irA('catalogos')" id="menuAdminCat" style="display:none;"><span data-ico="folder"></span>Catálogos</button>
+    <button class="menu-item" data-vista="costos" onclick="irA('costos')" id="menuAdminCos" style="display:none;"><span data-ico="dollar"></span>Costos</button>
+    <button class="menu-item" data-vista="dashboard-admin" onclick="irA('dashboard-admin')" id="menuAdminDash" style="display:none;"><span data-ico="bar-chart"></span>Dashboard</button>
+    <div class="menu-sep">Cuenta</div>
+    <button class="menu-item" data-vista="privacidad" onclick="irA('privacidad')"><span data-ico="shield-check"></span>Privacidad y seguridad</button>
   </nav>
   <div class="menu-footer">
-    <button id="btnCerrarSesion" onclick="cerrarSesion()">🔒 CERRAR SESIÓN</button>
+    <button id="btnCerrarSesion" onclick="cerrarSesion()"><span data-ico="log-out" data-ico-tam="18"></span>CERRAR SESIÓN</button>
   </div>
 </div>
 
@@ -265,6 +275,8 @@
 
 <!-- ============ SCRIPTS ============ -->
 <script src="api.js"></script>
+<script src="iconos.js"></script>
+<script src="tema.js"></script>
 <script src="core.js"></script>
 <script src="admin.js"></script>
 
