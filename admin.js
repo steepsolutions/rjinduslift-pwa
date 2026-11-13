@@ -1583,3 +1583,29 @@ function validarRangosCostos_(horas, tasa) {
   }
   return '';
 }
+
+/* ================================================================
+ * APARIENCIA — elegir modo automático / claro / oscuro
+ * ================================================================ */
+function htmlSelectorTema_() {
+  const opcion = function (valor, icono, texto) {
+    return '<button type="button" class="tema-opcion" data-tema-op="' + valor + '" onclick="elegirTema(\'' + valor + '\')">' +
+      ico(icono, 22) + '<span>' + texto + '</span></button>';
+  };
+  return '<div class="tema-opciones">' +
+    opcion('auto', 'monitor', 'Automático') +
+    opcion('claro', 'sun', 'Claro') +
+    opcion('oscuro', 'moon', 'Oscuro') +
+    '</div><div style="margin-top:8px;font-size:12px;opacity:.7;">Se guarda solo en este dispositivo.</div>';
+}
+
+(function () {
+  const pantallaBase = cargarPantallaPrivacidad_;
+  cargarPantallaPrivacidad_ = async function () {
+    await pantallaBase();
+    const contenedor = document.getElementById('privacidadContenido');
+    if (!contenedor) return;
+    contenedor.insertAdjacentHTML('afterbegin', dashSeccion_(ico('sun', 18) + ' Apariencia', htmlSelectorTema_()));
+    marcarTemaActivo_();
+  };
+})();
