@@ -1609,3 +1609,55 @@ function htmlSelectorTema_() {
     marcarTemaActivo_();
   };
 })();
+
+/* ================================================================
+ * COSTOS: tarifas y búsqueda de repuestos con reintento y error visible
+ * (antes fallaban en silencio y el campo quedaba vacío)
+ * ================================================================ */
+function avisoCostos_(html) {
+  const seccion = document.getElementById('costosSeccion') || document.getElementById('costosRevisar');
+  if (!seccion) return;
+  let aviso = document.getElementById('avisoCostos');
+  if (!html) { if (aviso) aviso.remove(); return; }
+  if (!aviso) {
+    aviso = document.createElement('div');
+    aviso.id = 'avisoCostos';
+    aviso.className = 'alerta rojo';
+    seccion.insertBefore(aviso, seccion.children[1] || null);
+  }
+  aviso.innerHTML = html;
+}
+
+async function cargarTarifasCostos_(intento) {
+  intento = Number(intento) || 1;
+  try {
+    const datos = await apiFetch(API_URL + '?accion=obtenerTarifas');
+    COSTOS_ESTADO.tarifas = {};
+    datos.forEach(function (t) { COSTOS_ESTADO.tarifas[t.Nivel] = Number(t['Precio USD/Hora']) || 0; });
+    actualizarPreciosNiveles_();
+    recalcularCostos();
+    avisoCostos_('');
+  } catch (err) {
+    if (intento < 3 && esErrorReintentable_(err)) {
+      setTimeout(function () { cargarTarifasCostos_(intento + 1); }, 1500 * intento);
+      return;
+    }
+    avisoCostos_('No se pudieron cargar las tarifas: ' + escaparHTML_(err.message) +
+      ' <a href="#" onclick="cargarTarifasCostos_();return false;"><b>Reintentar</b></a>');
+  }
+}
+
+function buscarRepuestosSugerencias() {
+  const termino = (document.getElementById('buscadorRepuestos').value || '').trim();
+  clearTimeout(_buscadorTimeout);
+  if (termino.length < 2) { ocultarSugerencias_(); return; }
+  _buscadorTimeout = setTimeout(async function () {
+    try {
+      mostrarSugerencias_(await apiFetch(API_URL + '?accion=obtenerRepuestos&termino=' + encodeURIComponent(termino)));
+    } catch (err) {
+      const caja = document.getElementById('sugerenciasRepuestos');
+      caja.innerHTML = '<div class="sugerencia" style="cursor:default;color:#C0392B">No se pudo buscar: ' + escaparHTML_(err.message) + '</div>';
+      caja.classList.add('visible');
+    }
+  }, 250);
+}
