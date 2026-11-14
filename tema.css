@@ -1,0 +1,121 @@
+/* =====================================================================
+ * tema.css — MODO OSCURO
+ * Se activa con <html data-tema="oscuro"> (lo pone tema.js). El modo claro es app.css.
+ * Cada regla repite el selector de app.css con el prefijo html[data-tema="oscuro"]
+ * para ganarle en especificidad. La zona de firma se deja CLARA a propósito.
+ * ===================================================================== */
+
+html[data-tema="oscuro"] {
+  color-scheme: dark;
+  --gris: #0F1115; --borde: #2A2F38; --texto: #E7E9EC;
+  --t-tarjeta: #181B21; --t-campo: #1F232A; --t-tenue: #98A1AE;
+  --t-ok: #86EFAC;     --t-ok-fondo: rgba(34, 197, 94, .16);
+  --t-alerta: #FCD34D; --t-alerta-fondo: rgba(245, 158, 11, .14); --t-alerta-borde: rgba(245, 158, 11, .40);
+  --t-error: #FCA5A5;  --t-error-fondo: rgba(239, 68, 68, .14);  --t-error-borde: rgba(239, 68, 68, .45);
+  --t-info: #7DD3FC;   --t-info-fondo: rgba(56, 189, 248, .16);
+}
+
+/* ---------- 1. Texto principal y secundario ---------- */
+html[data-tema="oscuro"] :is(.login-titulo, .pin-fila input, .vista h2, label, .card h3, .cierre-seccion h3,
+  .tarea .eq, .check-nombre, .acordeon-header .titulo-cat, .btn-expandir, .foto-campo label, .modal-mensaje b,
+  .modal-titulo, .costos-seccion h3, .nivel-costo-btn .letra, .sugerencia .desc, .repuesto-item .desc,
+  .enviando-titulo, .catalog-item .nombre, .reporte-card .codigo, .revisar-seccion h3, .kpi .val,
+  .modal-form-caja h3) { color: var(--texto); }
+html[data-tema="oscuro"] .revisar-seccion .contenido .campo b { color: var(--texto); }
+html[data-tema="oscuro"] .revisar-seccion .contenido { color: var(--texto); }
+html[data-tema="oscuro"] :is(.pin-label, .kpi .sub, .tarea .cliente, .modal-mensaje, .enviando-mensaje, .exito-sub,
+  .catalog-item .sub, .reporte-card .cliente, .reporte-card .equipo, .reporte-card .fecha, .dash-kpi .lbl,
+  .hist-conteo, .estado-envio, .dash-kpi .sub, .kpi .lbl, .login-sub) { color: var(--t-tenue); }
+html[data-tema="oscuro"] :where(a:not([class])) { color: #8AB4FF; }
+
+/* ---------- 2. Superficies (tarjetas, paneles, ventanas) ---------- */
+html[data-tema="oscuro"] :is(.login-caja, .card, .revisar-seccion, .kpi, .tarea, .acordeon, .acordeon-header,
+  .btn-expandir, .barra-contadores, .check-item, .cierre-seccion, .costos-seccion, .modal-caja, .modal-form-caja,
+  .enviando-caja, .catalog-item, .catalog-tab, .reporte-card, .dash-kpi, .dash-seccion, .hist-filtros,
+  .consent-caja, .tema-opcion, .sugerencias, .nivel-costo-btn, .foto-btn, .firma-btn-limpiar) {
+  background: var(--t-tarjeta);
+}
+html[data-tema="oscuro"] :is(.foto-campo, .repuesto-item, .otro-item, .contador) { background: var(--t-campo); border-color: var(--borde); }
+html[data-tema="oscuro"] :is(.foto-thumb, .btn-icono, .modal-form-caja h3 button) { background: var(--t-campo); }
+html[data-tema="oscuro"] .modal-form-caja h3 button { color: var(--t-tenue); }
+html[data-tema="oscuro"] .catalog-item .btn-icono { color: var(--texto); }
+html[data-tema="oscuro"] .dash-barra-fondo, html[data-tema="oscuro"] .dash-apilada { background: var(--borde); }
+html[data-tema="oscuro"] .revisar-seccion .contenido .campo { border-bottom-color: var(--borde); }
+html[data-tema="oscuro"] .sugerencia { border-bottom-color: var(--borde); }
+html[data-tema="oscuro"] ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .18); }
+
+/* ---------- 3. Campos de formulario ---------- */
+html[data-tema="oscuro"] :is(input, select, textarea) { background: var(--t-campo); color: var(--texto); border-color: var(--borde); }
+html[data-tema="oscuro"] ::placeholder { color: #6B7280; }
+html[data-tema="oscuro"] select option { background: #1F232A; color: #E7E9EC; }
+html[data-tema="oscuro"] input[style*="background"] { background: var(--t-campo) !important; color: var(--t-tenue) !important; }  /* campos bloqueados con estilo en línea */
+html[data-tema="oscuro"] #loginUsuario { background: var(--t-campo); color: var(--texto); border-color: var(--borde); }
+html[data-tema="oscuro"] :is(input, select, textarea):focus { border-color: var(--naranja); }
+html[data-tema="oscuro"] .pin-fila input:focus { border-color: var(--naranja); }
+html[data-tema="oscuro"] .buscador-input { border-color: var(--naranja); }
+html[data-tema="oscuro"] .tasa-input-wrap input { border-color: var(--naranja); color: var(--naranja); }
+html[data-tema="oscuro"] .toggle-recargo input.porcentaje { border-color: var(--t-alerta-borde); color: var(--naranja); }
+html[data-tema="oscuro"] .estado-select { border-color: var(--borde); }
+
+/* ---------- 4. Estados, insignias y avisos ---------- */
+html[data-tema="oscuro"] #offlineBar { background: var(--t-alerta-fondo); color: var(--t-alerta); border-bottom-color: var(--t-alerta-borde); }
+html[data-tema="oscuro"] .alerta { background: var(--t-alerta-fondo); border-color: var(--t-alerta-borde); color: var(--t-alerta); }
+html[data-tema="oscuro"] .alerta.rojo { background: var(--t-error-fondo); border-color: var(--t-error-borde); color: var(--t-error); }
+html[data-tema="oscuro"] .alerta[style] { background: var(--t-alerta-fondo) !important; border-color: var(--t-alerta-borde) !important; color: var(--t-alerta) !important; }
+html[data-tema="oscuro"] .tarea.urgente { background: var(--t-error-fondo); }
+html[data-tema="oscuro"] .check-item.ok { background: var(--t-ok-fondo); }
+html[data-tema="oscuro"] .check-item.pend { background: var(--t-error-fondo); }
+html[data-tema="oscuro"] .check-item.adicional { background: rgba(123, 63, 160, .18); }
+html[data-tema="oscuro"] .cierre-seccion .nota-interna { background: rgba(123, 63, 160, .18); color: #D2B4EA; }
+html[data-tema="oscuro"] .rep-btn { background: var(--t-campo); border-color: var(--borde); color: var(--t-tenue); }
+html[data-tema="oscuro"] .rep-btn.rep-r.on { background: var(--t-ok-fondo); color: var(--t-ok); border-color: #22C55E; }
+html[data-tema="oscuro"] .rep-btn.rep-e.on { background: var(--t-info-fondo); color: var(--t-info); border-color: #38BDF8; }
+html[data-tema="oscuro"] .rep-btn.rep-p.on { background: var(--t-error-fondo); color: var(--t-error); border-color: #EF4444; }
+html[data-tema="oscuro"] .acordeon.completo .acordeon-header .contador { background: var(--t-ok-fondo); color: var(--t-ok); }
+html[data-tema="oscuro"] .reporte-card .pill-cerrado { background: var(--t-ok-fondo); color: var(--t-ok); }
+html[data-tema="oscuro"] .reporte-card .pill-pendiente { background: var(--t-alerta-fondo); color: var(--t-alerta); }
+html[data-tema="oscuro"] .reporte-card .pill-rechazado { background: var(--t-error-fondo); color: var(--t-error); }
+html[data-tema="oscuro"] .reporte-card .pill-borrador { background: var(--borde); color: var(--t-tenue); }
+html[data-tema="oscuro"] .reporte-card .motivo-rechazo { background: var(--t-error-fondo); color: var(--t-error); }
+html[data-tema="oscuro"] .reporte-card .motivo-rechazo b { color: #FECACA; }
+html[data-tema="oscuro"] .rechazo-form { background: var(--t-error-fondo); }
+html[data-tema="oscuro"] .rechazo-form label { color: var(--t-error); }
+html[data-tema="oscuro"] .rechazo-form textarea { border-color: var(--t-error-borde); }
+html[data-tema="oscuro"] .cola-error { background: var(--t-error-fondo); color: var(--t-error); }
+html[data-tema="oscuro"] .cola-acciones button { background: var(--t-campo); color: var(--texto); }
+html[data-tema="oscuro"] #consentError { color: var(--t-error); }
+
+/* ---------- 5. Botones ---------- */
+html[data-tema="oscuro"] .btn.negro, html[data-tema="oscuro"] .exito-btn-financiero { background: #2A2F38; }
+html[data-tema="oscuro"] :is(.btn, .btn-login, .btn-aprobar, .btn-rechazar):disabled { background: #2A2F38; color: #6B7280; }
+html[data-tema="oscuro"] :is(.modal-btn-gris, .modal-form-acciones .btn-cancelar, .rechazo-form .botones .btn-cancelar,
+  .form-agregar-item .btn-cancelar, .consent-caja .consent-rechazar) { background: var(--t-campo); color: var(--texto); }
+html[data-tema="oscuro"] .modal-btn-gris:hover { background: var(--borde); }
+html[data-tema="oscuro"] .btn-agregar-item, html[data-tema="oscuro"] .form-agregar-item { background: var(--t-alerta-fondo); }
+html[data-tema="oscuro"] .btn-agregar-item { color: var(--naranja); }
+html[data-tema="oscuro"] .btn-agregar-item:hover { background: var(--naranja); color: #fff; }
+html[data-tema="oscuro"] .btn-agregar-mini:hover, html[data-tema="oscuro"] .sugerencia:hover { background: rgba(245, 130, 31, .14); }
+html[data-tema="oscuro"] .foto-btn { color: var(--naranja); }
+html[data-tema="oscuro"] .foto-btn:hover { background: var(--naranja); color: #fff; }
+html[data-tema="oscuro"] .btn-expandir:hover { background: var(--t-campo); color: var(--naranja); }
+html[data-tema="oscuro"] .acordeon-header:hover { background: var(--t-campo); }
+html[data-tema="oscuro"] .firma-btn-limpiar { color: var(--t-tenue); border-color: var(--borde); }
+html[data-tema="oscuro"] .firma-btn-limpiar:hover { background: var(--t-campo); }
+
+/* ---------- 6. Pestañas y elementos activos (deben ir al final de sus grupos) ---------- */
+html[data-tema="oscuro"] .catalog-tab { border-color: var(--borde); color: var(--t-tenue); }
+html[data-tema="oscuro"] .catalog-tab.activo { background: var(--naranja); border-color: var(--naranja); color: #fff; }
+html[data-tema="oscuro"] .nivel-costo-btn { border-color: var(--borde); }
+html[data-tema="oscuro"] .nivel-costo-btn.activo { background: rgba(245, 130, 31, .14); border-color: var(--naranja); }
+html[data-tema="oscuro"] .nivel-costo-btn.activo .letra { color: var(--naranja); }
+html[data-tema="oscuro"] .nivel-costo-btn.activo .precio { color: var(--naranja); }
+html[data-tema="oscuro"] .tema-opcion { border-color: var(--borde); color: var(--t-tenue); }
+html[data-tema="oscuro"] .tema-opcion.activo { background: rgba(245, 130, 31, .14); border-color: var(--naranja); color: var(--naranja); }
+html[data-tema="oscuro"] .dash-tab { background: var(--t-campo); color: var(--texto); }
+html[data-tema="oscuro"] .dash-tab.activo { background: var(--naranja); color: #fff; }
+html[data-tema="oscuro"] .toggle-recargo { background: var(--t-alerta-fondo); border-color: var(--t-alerta-borde); }
+html[data-tema="oscuro"] .toggle-recargo .checkbox { background: var(--t-campo); border-color: var(--t-alerta-borde); }
+html[data-tema="oscuro"] .toggle-recargo.activo .checkbox { background: var(--naranja); border-color: var(--naranja); }
+html[data-tema="oscuro"] .toggle-recargo .texto { color: var(--t-alerta); }
+html[data-tema="oscuro"] .catalog-item .btn-icono:hover { background: var(--naranja); color: #fff; }
+html[data-tema="oscuro"] .catalog-item .btn-icono.rojo:hover { background: var(--rojo); color: #fff; }
