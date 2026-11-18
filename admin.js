@@ -1661,3 +1661,94 @@ function buscarRepuestosSugerencias() {
     }
   }, 250);
 }
+
+/* ================================================================
+ * FASE C — Pantalla final del admin: avisa si algo falló y permite reintentar
+ * Reemplaza a mostrarPantallaExito_ de core.js (esta declaración queda última).
+ * ================================================================ */
+
+function mostrarPantallaExito_(res) {
+  const errores = res.errores || {};
+  const fallos = [
+    errores.pdf && 'No se generaron los informes PDF: ' + errores.pdf,
+    errores.correoTecnico && 'No se envió el correo al cliente: ' + errores.correoTecnico,
+    errores.correoFinanciero && 'No se envió el correo a los socios: ' + errores.correoFinanciero
+  ].filter(Boolean);
+  const hayFallos = fallos.length > 0;
+  const esAdmin = usuarioActual_().rol === 'admin';
+  const codigo = String(res.codigo || '');
+
+  document.querySelectorAll('.vista').forEach(function (v) { v.classList.remove('activa'); });
+  let vista = document.getElementById('vista-exito');
+  if (!vista) {
+    vista = document.createElement('section');
+    vista.id = 'vista-exito';
+    vista.className = 'vista';
+    document.getElementById('mainContainer').appendChild(vista);
+  }
+  vista.classList.add('activa');
+
+  const boton = function (clase, href, texto, estilo) {
+    const url = urlSegura_(href);
+    return url
+      ? '<a class="exito-btn ' + clase + '"' + (estilo ? ' style="' + estilo + '"' : '') +
+        ' href="' + escaparHTML_(url) + '" target="_blank">' + texto + '</a>'
+      : '';
+  };
+
+  let html =
+    '<div class="exito-caja">' +
+    '<div class="exito-icono">' + (hayFallos ? '⚠️' : '✅') + '</div>' +
+    '<div class="exito-titulo"' + (hayFallos ? ' style="color:#C0392B;"' : '') + '>' +
+      (hayFallos ? 'Reporte aprobado, pero hubo problemas' : 'Reporte Aprobado y Enviado') + '</div>' +
+    '<div class="exito-sub">' +
+      (hayFallos
+        ? 'El reporte quedó aprobado y guardado, pero no todo se completó. Puedes reintentar sin perder nada.'
+        : 'El informe fue aprobado, los PDFs generados y los correos enviados.') + '</div>';
+
+  if (hayFallos) {
+    html += '<div class="alerta rojo" style="text-align:left;margin:12px 0;"><b>Qué falló:</b><ul style="margin:6px 0 0 18px;padding:0;">' +
+      fallos.map(function (f) { return '<li>' + escaparHTML_(f) + '</li>'; }).join('') + '</ul></div>';
+  }
+
+  html += '<div class="exito-codigo"><span class="exito-codigo-label">CÓDIGO DEL REPORTE</span>' + escaparHTML_(codigo) + '</div>' +
+    '<div class="exito-acciones">';
+
+  if (hayFallos && esAdmin) {
+    html += '<button type="button" id="btnRegenerarInformes" class="exito-btn" style="background:#C0392B;color:#fff;" ' +
+      'onclick="regenerarInformesUI_(\'' + escaparAttr_(codigo) + '\')">🔄 Regenerar informes y reenviar</button>';
+  }
+  html += boton('exito-btn-whatsapp', res.linkWA, '📲 Enviar por WhatsApp');
+  html += boton('exito-btn-pdf', res.pdfTecnico, '📄 Ver Informe Técnico (PDF)');
+  if (esAdmin) html += boton('exito-btn-financiero', res.pdfFinanciero, '🔒 Ver Informe Financiero (PDF)');
+  html += boton('exito-btn-nuevo', res.carpetaUrl, '📸 Ver Carpeta de Fotos', 'background:#6AAA1E');
+  html += '<button class="exito-btn exito-btn-nuevo" onclick="nuevoReporteDesdeExito()">➕ Crear otro reporte</button>' +
+    '</div></div>';
+
+  vista.innerHTML = html;
+  EQUIPO_CHECKLIST_ACTIVO = null;
+  RESPUESTAS = {};
+  DATOS_CHECKLIST = [];
+  window.scrollTo(0, 0);
+}
+
+// Pide al servidor rehacer los PDFs y reenviar lo pendiente (puede tardar 30-60 s)
+async function regenerarInformesUI_(codigo) {
+  const boton = document.getElementById('btnRegenerarInformes');
+  const overlay = document.getElementById('enviandoOverlay');
+  if (boton) boton.disabled = true;
+  overlay.classList.add('activo');
+  document.getElementById('enviandoTitulo').textContent = 'Regenerando informes...';
+  document.getElementById('enviandoMensaje').textContent = 'Generando PDFs y enviando correos. Puede tardar 30-60 segundos...';
+  try {
+    const res = await llamarApi_(API_URL + '?accion=regenerarInformes',
+      { method: 'POST', body: JSON.stringify({ args: [codigo] }) }, 180000);
+    overlay.classList.remove('activo');
+    if (!res || res.exito === false) throw new Error((res && res.error) || 'No se pudo regenerar los informes.');
+    mostrarPantallaExito_(res);
+  } catch (err) {
+    overlay.classList.remove('activo');
+    if (boton) boton.disabled = false;
+    miError('No se pudo regenerar', err.message);
+  }
+}
